@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/screens/home_screen.dart';
 import 'package:myapp/shared/base_color.dart';
 import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 import '../main.dart';
 
@@ -19,7 +20,6 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool isChecked = false;
-  bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
@@ -31,32 +31,46 @@ class _LoginPageState extends State<LoginPage> {
 
   // Simulasi proses login
   Future<void> _handleLogin() async {
-    // if (_formKey.currentState!.validate()) {
-    //   setState(() => _isLoading = true);
+    if (_formKey.currentState!.validate()) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    //   // Simulasi delay jaringan
-    //   await Future.delayed(const Duration(seconds: 2));
+      final success = await authProvider.login(
+        _emailController.text,
+        _passwordController.text,
+      );
 
-    //   setState(() => _isLoading = false);
+      if (!mounted) return;
 
-    //   // Logika "Ingat Saya" biasanya disimpan di SharedPreferences di sini
-    //   if (isChecked) {
-    //     debugPrint("Simpan kredensial user");
-    //   }
+      if (success) {
+        if (isChecked) {
+          // TODO: Implement save credentials
+        }
 
-    //   ScaffoldMessenger.of(
-    //     context,
-    //   ).showSnackBar(const SnackBar(content: Text('Login Berhasil!')));
-    // }
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
-    );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login Berhasil!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.errorMessage ?? 'Login Gagal'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
       backgroundColor: BaseColor.primaryColor,
@@ -244,7 +258,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 30),
                       ElevatedButton(
-                        onPressed: _isLoading ? null : _handleLogin,
+                        onPressed: authProvider.isLoading ? null : _handleLogin,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF3366FF),
                           disabledBackgroundColor: Colors.grey,
@@ -253,7 +267,7 @@ class _LoginPageState extends State<LoginPage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: _isLoading
+                        child: authProvider.isLoading
                             ? const SizedBox(
                                 height: 20,
                                 width: 20,
