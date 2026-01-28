@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/screens/widgets/notification_icons.dart';
 import 'package:myapp/shared/base_color.dart';
 import 'package:myapp/screens/master_data/master_data_screen.dart';
+import 'package:myapp/screens/purchase_order/purchase_order_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -218,6 +219,14 @@ class _HomeScreenState extends State<HomeScreen>
               icon: Icons.shopping_cart_rounded,
               label: 'Purchase Order',
               color: const Color(0xFF06B6D4),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PurchaseOrderScreen(),
+                  ),
+                );
+              },
             ),
             _buildQuickMenuItem(
               icon: Icons.inventory_rounded,
