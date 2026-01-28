@@ -4,6 +4,7 @@ import 'package:myapp/screens/widgets/notification_icons.dart';
 import 'package:myapp/shared/base_color.dart';
 import 'package:myapp/screens/master_data/master_data_screen.dart';
 import 'package:myapp/screens/purchase_order/purchase_order_screen.dart';
+import 'package:myapp/screens/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -42,34 +43,50 @@ class _HomeScreenState extends State<HomeScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Column(
-            children: [
-              _buildAppBar(),
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildWelcomeSection(),
-                      const SizedBox(height: 32),
-                      _buildQuickMenu(),
-                      const SizedBox(height: 32),
-                      _buildAtAGlanceSection(),
-                    ],
-                  ),
-                ),
+        child: Column(
+          children: [
+            _buildAppBar(),
+            Expanded(
+              child: IndexedStack(
+                index: _selectedIndex,
+                children: [
+                  _buildDashboard(), // index 0
+                  _buildPlaceholder(), // index 1
+                  _buildPlaceholder(), // index 2
+                  const ProfileScreen(), // index 3 (Matches bottom nav Profile index)
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
       floatingActionButton: _buildFloatingActionButton(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return const Center(child: Text('Coming Soon'));
+  }
+
+  Widget _buildDashboard() {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildWelcomeSection(),
+            const SizedBox(height: 32),
+            _buildQuickMenu(),
+            const SizedBox(height: 32),
+            _buildAtAGlanceSection(),
+          ],
+        ),
+      ),
     );
   }
 
