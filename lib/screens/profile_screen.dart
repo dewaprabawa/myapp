@@ -27,16 +27,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
+  bool _isEditingProfile = false;
+  bool _isEditingPassword = false;
 
   @override
   void initState() {
     super.initState();
-    final user = context.read<AuthProvider>().user;
-    if (user != null) {
-      _nameController.text = user.name;
-      _emailController.text = user.email;
-      _phoneController.text = user.phone ?? '';
-    }
+    Future.microtask(() async {
+      await context.read<AuthProvider>().fetchUserProfile();
+      if (!mounted) return;
+      final user = context.read<AuthProvider>().user;
+      if (user != null) {
+        _nameController.text = user.name;
+        _emailController.text = user.email;
+        _phoneController.text = user.phone ?? '';
+      }
+    });
   }
 
   @override
@@ -58,6 +64,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
 
       if (mounted) {
+        if (success) {
+          setState(() => _isEditingProfile = false);
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -86,6 +95,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _currentPasswordController.clear();
           _newPasswordController.clear();
           _confirmPasswordController.clear();
+          setState(() => _isEditingPassword = false);
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -157,67 +167,110 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Informasi Profil',
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF1A1A1A),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Informasi Profil',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1A1A1A),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _isEditingProfile = !_isEditingProfile;
+                      if (!_isEditingProfile) {
+                        // Reset controllers to current user data if cancelled
+                        final user = context.read<AuthProvider>().user;
+                        if (user != null) {
+                          _nameController.text = user.name;
+                          _phoneController.text = user.phone ?? '';
+                        }
+                      }
+                    });
+                  },
+                  icon: Icon(
+                    _isEditingProfile
+                        ? Icons.close_rounded
+                        : Icons.edit_rounded,
+                    size: 18,
+                    color: _isEditingProfile
+                        ? Colors.red
+                        : const Color(0xFF4C6FFF),
+                  ),
+                  label: Text(
+                    _isEditingProfile ? 'Batal' : 'Edit',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      color: _isEditingProfile
+                          ? Colors.red
+                          : const Color(0xFF4C6FFF),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
             _buildFieldLabel('Nama'),
-            _buildTextFormField(
-              controller: _nameController,
-              hint: 'Nama Lengkap',
-              validator: (v) => v!.isEmpty ? 'Nama tidak boleh kosong' : null,
-            ),
+            _isEditingProfile
+                ? _buildTextFormField(
+                    controller: _nameController,
+                    hint: 'Nama Lengkap',
+                    validator: (v) =>
+                        v!.isEmpty ? 'Nama tidak boleh kosong' : null,
+                  )
+                : _buildReadOnlyText(_nameController.text),
             const SizedBox(height: 16),
             _buildFieldLabel('Email'),
-            _buildTextFormField(
-              controller: _emailController,
-              hint: 'Email',
-              enabled: false,
-            ),
+            _buildReadOnlyText(_emailController.text),
             const SizedBox(height: 16),
             _buildFieldLabel('Telepon'),
-            _buildTextFormField(
-              controller: _phoneController,
-              hint: 'Nomor Telepon',
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: authProvider.isLoading ? null : _updateProfile,
-                icon: authProvider.isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.check_rounded, color: Colors.white),
-                label: Text(
-                  'Simpan Perubahan',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+            _isEditingProfile
+                ? _buildTextFormField(
+                    controller: _phoneController,
+                    hint: 'Nomor Telepon',
+                    keyboardType: TextInputType.phone,
+                  )
+                : _buildReadOnlyText(
+                    _phoneController.text.isEmpty ? '-' : _phoneController.text,
                   ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4C6FFF),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            if (_isEditingProfile) ...[
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: authProvider.isLoading ? null : _updateProfile,
+                  icon: authProvider.isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.check_rounded, color: Colors.white),
+                  label: Text(
+                    'Simpan Perubahan',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
-                  elevation: 0,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4C6FFF),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -243,111 +296,152 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Ubah Password',
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF1A1A1A),
-              ),
-            ),
-            const SizedBox(height: 20),
-            _buildFieldLabel('Password Saat Ini'),
-            _buildTextFormField(
-              controller: _currentPasswordController,
-              hint: 'Masukkan password saat ini',
-              obscureText: _obscureCurrent,
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscureCurrent
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  color: Colors.grey,
-                  size: 20,
-                ),
-                onPressed: () =>
-                    setState(() => _obscureCurrent = !_obscureCurrent),
-              ),
-              validator: (v) =>
-                  v!.isEmpty ? 'Password saat ini diperlukan' : null,
-            ),
-            const SizedBox(height: 16),
-            _buildFieldLabel('Password Baru'),
-            _buildTextFormField(
-              controller: _newPasswordController,
-              hint: 'Masukkan password baru',
-              obscureText: _obscureNew,
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscureNew
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  color: Colors.grey,
-                  size: 20,
-                ),
-                onPressed: () => setState(() => _obscureNew = !_obscureNew),
-              ),
-              validator: (v) =>
-                  v!.length < 6 ? 'Password minimal 6 karakter' : null,
-            ),
-            const SizedBox(height: 16),
-            _buildFieldLabel('Konfirmasi Password Baru'),
-            _buildTextFormField(
-              controller: _confirmPasswordController,
-              hint: 'Konfirmasi password baru',
-              obscureText: _obscureConfirm,
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscureConfirm
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  color: Colors.grey,
-                  size: 20,
-                ),
-                onPressed: () =>
-                    setState(() => _obscureConfirm = !_obscureConfirm),
-              ),
-              validator: (v) {
-                if (v != _newPasswordController.text)
-                  return 'Konfirmasi password tidak cocok';
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: authProvider.isLoading ? null : _updatePassword,
-                icon: authProvider.isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(
-                        Icons.lock_outline_rounded,
-                        color: Colors.white,
-                      ),
-                label: Text(
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
                   'Ubah Password',
                   style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1A1A1A),
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF59E0B),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _isEditingPassword = !_isEditingPassword;
+                      if (!_isEditingPassword) {
+                        _currentPasswordController.clear();
+                        _newPasswordController.clear();
+                        _confirmPasswordController.clear();
+                      }
+                    });
+                  },
+                  icon: Icon(
+                    _isEditingPassword
+                        ? Icons.close_rounded
+                        : Icons.lock_open_rounded,
+                    size: 18,
+                    color: _isEditingPassword
+                        ? Colors.red
+                        : const Color(0xFFF59E0B),
                   ),
-                  elevation: 0,
+                  label: Text(
+                    _isEditingPassword ? 'Batal' : 'Ubah',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      color: _isEditingPassword
+                          ? Colors.red
+                          : const Color(0xFFF59E0B),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            if (!_isEditingPassword) ...[
+              _buildFieldLabel('Password'),
+              _buildReadOnlyText('••••••••••••'),
+            ] else ...[
+              _buildFieldLabel('Password Saat Ini'),
+              _buildTextFormField(
+                controller: _currentPasswordController,
+                hint: 'Masukkan password saat ini',
+                obscureText: _obscureCurrent,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureCurrent
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: Colors.grey,
+                    size: 20,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscureCurrent = !_obscureCurrent),
+                ),
+                validator: (v) =>
+                    v!.isEmpty ? 'Password saat ini diperlukan' : null,
+              ),
+              const SizedBox(height: 16),
+              _buildFieldLabel('Password Baru'),
+              _buildTextFormField(
+                controller: _newPasswordController,
+                hint: 'Masukkan password baru',
+                obscureText: _obscureNew,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureNew
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: Colors.grey,
+                    size: 20,
+                  ),
+                  onPressed: () => setState(() => _obscureNew = !_obscureNew),
+                ),
+                validator: (v) =>
+                    v!.length < 6 ? 'Password minimal 6 karakter' : null,
+              ),
+              const SizedBox(height: 16),
+              _buildFieldLabel('Konfirmasi Password Baru'),
+              _buildTextFormField(
+                controller: _confirmPasswordController,
+                hint: 'Konfirmasi password baru',
+                obscureText: _obscureConfirm,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureConfirm
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: Colors.grey,
+                    size: 20,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscureConfirm = !_obscureConfirm),
+                ),
+                validator: (v) {
+                  if (v != _newPasswordController.text) {
+                    return 'Konfirmasi password tidak cocok';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: authProvider.isLoading ? null : _updatePassword,
+                  icon: authProvider.isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.lock_outline_rounded,
+                          color: Colors.white,
+                        ),
+                  label: Text(
+                    'Ubah Password Sekarang',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF59E0B),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -409,6 +503,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
           borderSide: const BorderSide(color: Color(0xFF4C6FFF)),
         ),
         suffixIcon: suffixIcon,
+      ),
+    );
+  }
+
+  Widget _buildReadOnlyText(String text) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.poppins(
+          fontSize: 14,
+          color: Colors.black87,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }

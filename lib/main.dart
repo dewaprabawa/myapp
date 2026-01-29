@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/screens/login_page.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/providers/auth_provider.dart';
+import 'package:myapp/providers/user_provider.dart';
+import 'package:myapp/providers/dashboard_provider.dart';
 
 import 'package:myapp/screens/home_screen.dart';
 
@@ -12,6 +14,8 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
       ],
       child: const MyApp(),
     ),

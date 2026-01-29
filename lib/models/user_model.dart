@@ -14,6 +14,54 @@ class LoginResponse {
   }
 }
 
+class UserListResponse {
+  final bool success;
+  final String message;
+  final List<User>? data;
+  final Meta? meta;
+
+  UserListResponse({
+    required this.success,
+    required this.message,
+    this.data,
+    this.meta,
+  });
+
+  factory UserListResponse.fromJson(Map<String, dynamic> json) {
+    return UserListResponse(
+      success: json['success'] ?? false,
+      message: json['message'] ?? '',
+      data: json['data'] != null
+          ? (json['data'] as List).map((i) => User.fromJson(i)).toList()
+          : null,
+      meta: json['meta'] != null ? Meta.fromJson(json['meta']) : null,
+    );
+  }
+}
+
+class Meta {
+  final int currentPage;
+  final int lastPage;
+  final int perPage;
+  final int total;
+
+  Meta({
+    required this.currentPage,
+    required this.lastPage,
+    required this.perPage,
+    required this.total,
+  });
+
+  factory Meta.fromJson(Map<String, dynamic> json) {
+    return Meta(
+      currentPage: json['current_page'] ?? 0,
+      lastPage: json['last_page'] ?? 0,
+      perPage: json['per_page'] ?? 0,
+      total: json['total'] ?? 0,
+    );
+  }
+}
+
 class UserResponse {
   final bool success;
   final String message;
@@ -60,19 +108,29 @@ class LoginData {
 
 class User {
   final int id;
+  final int? partnerId;
   final String name;
   final String email;
   final String? phone;
   final String? avatar;
+  final bool isActive;
+  final String? emailVerifiedAt;
+  final String? createdAt;
+  final String? updatedAt;
   final List<String> roles;
   final Partner? partner;
 
   User({
     required this.id,
+    this.partnerId,
     required this.name,
     required this.email,
     this.phone,
     this.avatar,
+    required this.isActive,
+    this.emailVerifiedAt,
+    this.createdAt,
+    this.updatedAt,
     required this.roles,
     this.partner,
   });
@@ -80,10 +138,15 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'] ?? 0,
+      partnerId: json['partner_id'],
       name: json['name'] ?? '',
       email: json['email'] ?? '',
       phone: json['phone'],
       avatar: json['avatar'],
+      isActive: json['is_active'] ?? false,
+      emailVerifiedAt: json['email_verified_at'],
+      createdAt: json['created_at'],
+      updatedAt: json['updated_at'],
       roles: List<String>.from(json['roles'] ?? []),
       partner: json['partner'] != null
           ? Partner.fromJson(json['partner'])
@@ -98,6 +161,17 @@ class Partner {
   final String name;
   final String? address;
   final String? city;
+  final String? province;
+  final String? postalCode;
+  final String? phone;
+  final String? email;
+  final String? npwp;
+  final int? creditLimit;
+  final int? paymentTermDays;
+  final bool isActive;
+  final String? notes;
+  final String? createdAt;
+  final String? updatedAt;
 
   Partner({
     required this.id,
@@ -105,6 +179,17 @@ class Partner {
     required this.name,
     this.address,
     this.city,
+    this.province,
+    this.postalCode,
+    this.phone,
+    this.email,
+    this.npwp,
+    this.creditLimit,
+    this.paymentTermDays,
+    required this.isActive,
+    this.notes,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory Partner.fromJson(Map<String, dynamic> json) {
@@ -114,6 +199,17 @@ class Partner {
       name: json['name'] ?? '',
       address: json['address'],
       city: json['city'],
+      province: json['province'],
+      postalCode: json['postal_code'],
+      phone: json['phone'],
+      email: json['email'],
+      npwp: json['npwp'],
+      creditLimit: json['credit_limit'],
+      paymentTermDays: json['payment_term_days'],
+      isActive: json['is_active'] ?? false,
+      notes: json['notes'],
+      createdAt: json['created_at'],
+      updatedAt: json['updated_at'],
     );
   }
 }
