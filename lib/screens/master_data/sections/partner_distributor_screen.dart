@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:myapp/models/partner_model.dart';
+import 'package:myapp/providers/auth_provider.dart';
+import 'package:myapp/providers/partner_provider.dart';
+import 'package:myapp/screens/master_data/sections/add_partner_screen.dart';
+import 'package:myapp/screens/master_data/sections/partner_detail_screen.dart';
 import 'package:myapp/screens/widgets/notification_icons.dart';
 import 'package:myapp/shared/base_color.dart';
+import 'package:provider/provider.dart';
 
 class PartnerDistributorScreen extends StatefulWidget {
   const PartnerDistributorScreen({super.key});
@@ -13,8 +19,26 @@ class PartnerDistributorScreen extends StatefulWidget {
 
 class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String? selectedCategory;
-  String? selectedStatus;
+  bool? selectedStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchPartners();
+    });
+  }
+
+  Future<void> _fetchPartners() async {
+    final auth = context.read<AuthProvider>();
+    if (auth.token == null) return;
+
+    await context.read<PartnerProvider>().fetchPartners(
+      auth.token!,
+      search: _searchController.text.isNotEmpty ? _searchController.text : null,
+      isActive: selectedStatus,
+    );
+  }
 
   @override
   void dispose() {
@@ -28,8 +52,8 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: _buildAppBar(context),
       drawer: _buildDrawer(),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
+      body: Container(
+        // Changed to Container to use Expanded for the list
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,7 +64,36 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
             const SizedBox(height: 20),
             _buildSearchAndFilter(),
             const SizedBox(height: 24),
-            _buildProductList(),
+            Expanded(
+              child: Consumer<PartnerProvider>(
+                builder: (context, provider, _) {
+                  if (provider.isLoading && provider.partners.isEmpty) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (provider.errorMessage != null &&
+                      provider.partners.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(provider.errorMessage!),
+                          ElevatedButton(
+                            onPressed: _fetchPartners,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return RefreshIndicator(
+                    onRefresh: _fetchPartners,
+                    child: _buildPartnerList(provider.partners),
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -170,7 +223,15 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: () {},
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddPartnerScreen()),
+          );
+          if (result == true) {
+            _fetchPartners();
+          }
+        },
         icon: const Icon(Icons.add_rounded),
         label: Text(
           'Tambah Partner Distributor',
@@ -235,9 +296,25 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
           Row(
             children: [
               Expanded(
-                child: _buildDropdown(
+                child: _buildDropdown<bool>(
                   hint: 'Status',
                   value: selectedStatus,
+                  items: [
+                    DropdownMenuItem(
+                      value: true,
+                      child: Text(
+                        'Aktif',
+                        style: GoogleFonts.poppins(fontSize: 14),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: false,
+                      child: Text(
+                        'Non-Aktif',
+                        style: GoogleFonts.poppins(fontSize: 14),
+                      ),
+                    ),
+                  ],
                   onChanged: (value) {
                     setState(() {
                       selectedStatus = value;
@@ -253,9 +330,9 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: _fetchPartners,
                   icon: const Icon(Icons.search_rounded, size: 20),
-                  label: const Text(''),
+                  label: Text('Cari', style: GoogleFonts.poppins()),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: BaseColor.primaryColor,
                     foregroundColor: Colors.white,
@@ -277,9 +354,9 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
                   onPressed: () {
                     setState(() {
                       _searchController.clear();
-                      selectedCategory = null;
                       selectedStatus = null;
                     });
+                    _fetchPartners();
                   },
                   icon: const Icon(Icons.refresh_rounded),
                   color: const Color(0xFF6B7280),
@@ -292,10 +369,11 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
     );
   }
 
-  Widget _buildDropdown({
+  Widget _buildDropdown<T>({
     required String hint,
-    required String? value,
-    required ValueChanged<String?> onChanged,
+    required T? value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -304,7 +382,7 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
+        child: DropdownButton<T>(
           isExpanded: true,
           hint: Text(
             hint,
@@ -318,98 +396,66 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
             Icons.keyboard_arrow_down_rounded,
             color: Color(0xFF6B7280),
           ),
-          items: const [],
+          items: items,
           onChanged: onChanged,
         ),
       ),
     );
   }
 
-  Widget _buildProductList() {
-    final products = [
-      {
-        'code': '11131080-001',
-        'name': 'HS BOLD 10',
-        'price': 'Rp 45.000',
-        'status': 'TERSEDIA',
-        'statusColor': const Color(0xFF10B981),
-      },
-      {
-        'code': '11131080-002',
-        'name': 'HS LIGHT 5',
-        'price': 'Rp 32.500',
-        'status': 'TERSEDIA',
-        'statusColor': const Color(0xFF10B981),
-      },
-      {
-        'code': '11131080-003',
-        'name': 'HS REGULAR 8',
-        'price': 'Rp 38.000',
-        'status': 'HABIS',
-        'statusColor': const Color(0xFFEF4444),
-      },
-      {
-        'code': '11131080-004',
-        'name': 'HS PREMIUM 12',
-        'price': 'Rp 55.000',
-        'status': 'TERSEDIA',
-        'statusColor': const Color(0xFF10B981),
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'DAFTAR PRODUK',
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF9CA3AF),
-                letterSpacing: 1.2,
-              ),
+  Widget _buildPartnerList(List<PartnerData> partners) {
+    return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: partners.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'DAFTAR PARTNER',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF9CA3AF),
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                Text(
+                  '${partners.length} Partner',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF6B7280),
+                  ),
+                ),
+              ],
             ),
-            Text(
-              '${products.length} Produk',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF6B7280),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        ...products.map(
-          (product) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildProductCard(
-              code: product['code'] as String,
-              name: product['name'] as String,
-              price: product['price'] as String,
-              status: product['status'] as String,
-              statusColor: product['statusColor'] as Color,
-            ),
-          ),
-        ),
-      ],
+          );
+        }
+        final partner = partners[index - 1];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildPartnerCard(partner),
+        );
+      },
     );
   }
 
-  Widget _buildProductCard({
-    required String code,
-    required String name,
-    required String price,
-    required String status,
-    required Color statusColor,
-  }) {
+  Widget _buildPartnerCard(PartnerData partner) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {},
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PartnerDetailScreen(partnerId: partner.id),
+            ),
+          ).then((_) => _fetchPartners());
+        },
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -433,7 +479,7 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
-                  Icons.inventory_2_outlined,
+                  Icons.business_rounded,
                   color: Color(0xFF6B7280),
                   size: 28,
                 ),
@@ -444,7 +490,7 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      code,
+                      partner.code,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: const Color(0xFF4C6FFF),
@@ -453,7 +499,7 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      name,
+                      partner.name,
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -464,11 +510,20 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
                     Row(
                       children: [
                         Text(
-                          'HARGA',
+                          'KOTA',
                           style: GoogleFonts.poppins(
                             fontSize: 10,
                             color: const Color(0xFF9CA3AF),
                             fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          partner.city ?? '-',
+                          style: GoogleFonts.poppins(
+                            fontSize: 10,
+                            color: const Color(0xFF6B7280),
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -478,15 +533,21 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.1),
+                            color:
+                                (partner.isActive
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFFEF4444))
+                                    .withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            status,
+                            partner.isActive ? 'AKTIF' : 'NON-AKTIF',
                             style: GoogleFonts.poppins(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: statusColor,
+                              color: partner.isActive
+                                  ? const Color(0xFF10B981)
+                                  : const Color(0xFFEF4444),
                             ),
                           ),
                         ),
@@ -494,18 +555,65 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      price,
+                      partner.phone ?? '-',
                       style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1A1A1A),
+                        fontSize: 14,
+                        color: const Color(0xFF6B7280),
                       ),
                     ),
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: () {},
+              PopupMenuButton<String>(
+                onSelected: (value) async {
+                  if (value == 'edit') {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            AddPartnerScreen(partner: partner),
+                      ),
+                    );
+                    if (result == true) {
+                      _fetchPartners();
+                    }
+                  } else if (value == 'delete') {
+                    _showDeleteConfirmation(partner);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.edit_outlined,
+                          size: 20,
+                          color: Color(0xFF6B7280),
+                        ),
+                        SizedBox(width: 12),
+                        Text('Edit'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.delete_outline_rounded,
+                          size: 20,
+                          color: Color(0xFFEF4444),
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          'Hapus',
+                          style: TextStyle(color: Color(0xFFEF4444)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 icon: const Icon(
                   Icons.more_vert_rounded,
                   color: Color(0xFF9CA3AF),
@@ -514,6 +622,66 @@ class _PartnerDistributorScreenState extends State<PartnerDistributorScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(PartnerData partner) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Hapus Partner',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus partner "${partner.name}"?',
+          style: GoogleFonts.poppins(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.poppins(color: const Color(0xFF6B7280)),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final auth = context.read<AuthProvider>();
+              if (auth.token == null) return;
+
+              final success = await context
+                  .read<PartnerProvider>()
+                  .deletePartner(auth.token!, partner.id);
+              if (success) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Partner berhasil dihapus')),
+                  );
+                }
+              } else {
+                if (mounted) {
+                  final error = context.read<PartnerProvider>().errorMessage;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(error ?? 'Gagal menghapus partner'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text(
+              'Hapus',
+              style: GoogleFonts.poppins(
+                color: const Color(0xFFEF4444),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

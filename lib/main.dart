@@ -5,6 +5,10 @@ import 'package:provider/provider.dart';
 import 'package:myapp/providers/auth_provider.dart';
 import 'package:myapp/providers/user_provider.dart';
 import 'package:myapp/providers/dashboard_provider.dart';
+import 'package:myapp/providers/category_provider.dart';
+import 'package:myapp/providers/unit_provider.dart';
+import 'package:myapp/providers/product_provider.dart';
+import 'package:myapp/providers/partner_provider.dart';
 
 import 'package:myapp/screens/home_screen.dart';
 
@@ -15,6 +19,10 @@ void main() {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => CategoryProvider()),
+        ChangeNotifierProvider(create: (_) => UnitProvider()),
+        ChangeNotifierProvider(create: (_) => ProductProvider()),
+        ChangeNotifierProvider(create: (_) => PartnerProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
       ],
       child: const MyApp(),

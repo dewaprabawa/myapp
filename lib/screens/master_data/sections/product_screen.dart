@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:myapp/models/product_model.dart';
+import 'package:myapp/providers/auth_provider.dart';
+import 'package:myapp/providers/category_provider.dart';
+import 'package:myapp/providers/product_provider.dart';
+import 'package:myapp/providers/unit_provider.dart';
 import 'package:myapp/screens/widgets/notification_icons.dart';
 import 'package:myapp/shared/base_color.dart';
 import 'package:myapp/screens/master_data/sections/add_product_screen.dart';
 import 'package:myapp/screens/master_data/sections/product_detail_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 class ProductScreen extends StatefulWidget {
   const ProductScreen({super.key});
@@ -14,8 +21,39 @@ class ProductScreen extends StatefulWidget {
 
 class _ProductScreenState extends State<ProductScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String? selectedCategory;
-  String? selectedStatus;
+  int? selectedCategoryId;
+  bool? selectedStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => _fetchInitialData());
+  }
+
+  Future<void> _fetchInitialData() async {
+    final auth = context.read<AuthProvider>();
+    if (auth.token != null) {
+      await Future.wait([
+        context.read<ProductProvider>().fetchProducts(auth.token!),
+        context.read<CategoryProvider>().fetchCategories(auth.token!),
+        context.read<UnitProvider>().fetchUnits(auth.token!),
+      ]);
+    }
+  }
+
+  Future<void> _fetchProducts() async {
+    final auth = context.read<AuthProvider>();
+    if (auth.token != null) {
+      await context.read<ProductProvider>().fetchProducts(
+        auth.token!,
+        search: _searchController.text.isNotEmpty
+            ? _searchController.text
+            : null,
+        categoryId: selectedCategoryId,
+        isActive: selectedStatus,
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -41,7 +79,7 @@ class _ProductScreenState extends State<ProductScreen> {
             const SizedBox(height: 20),
             _buildSearchAndFilter(),
             const SizedBox(height: 24),
-            _buildProductList(),
+            _buildProductListSection(),
           ],
         ),
       ),
@@ -241,21 +279,50 @@ class _ProductScreenState extends State<ProductScreen> {
           Row(
             children: [
               Expanded(
-                child: _buildDropdown(
-                  hint: 'Pilih Kategori',
-                  value: selectedCategory,
-                  onChanged: (value) {
-                    setState(() {
-                      selectedCategory = value;
-                    });
+                child: Consumer<CategoryProvider>(
+                  builder: (context, provider, _) {
+                    return _buildDropdown<int>(
+                      hint: 'Pilih Kategori',
+                      value: selectedCategoryId,
+                      items: provider.categories.map((c) {
+                        return DropdownMenuItem<int>(
+                          value: c.id,
+                          child: Text(
+                            c.name,
+                            style: GoogleFonts.poppins(fontSize: 14),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedCategoryId = value;
+                        });
+                      },
+                    );
                   },
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildDropdown(
+                child: _buildDropdown<bool>(
                   hint: 'Status',
                   value: selectedStatus,
+                  items: [
+                    DropdownMenuItem(
+                      value: true,
+                      child: Text(
+                        'Aktif',
+                        style: GoogleFonts.poppins(fontSize: 14),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: false,
+                      child: Text(
+                        'Non-Aktif',
+                        style: GoogleFonts.poppins(fontSize: 14),
+                      ),
+                    ),
+                  ],
                   onChanged: (value) {
                     setState(() {
                       selectedStatus = value;
@@ -271,9 +338,9 @@ class _ProductScreenState extends State<ProductScreen> {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: _fetchProducts,
                   icon: const Icon(Icons.search_rounded, size: 20),
-                  label: const Text(''),
+                  label: const Text('Cari'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: BaseColor.primaryColor,
                     foregroundColor: Colors.white,
@@ -295,9 +362,10 @@ class _ProductScreenState extends State<ProductScreen> {
                   onPressed: () {
                     setState(() {
                       _searchController.clear();
-                      selectedCategory = null;
+                      selectedCategoryId = null;
                       selectedStatus = null;
                     });
+                    _fetchProducts();
                   },
                   icon: const Icon(Icons.refresh_rounded),
                   color: const Color(0xFF6B7280),
@@ -310,10 +378,11 @@ class _ProductScreenState extends State<ProductScreen> {
     );
   }
 
-  Widget _buildDropdown({
+  Widget _buildDropdown<T>({
     required String hint,
-    required String? value,
-    required ValueChanged<String?> onChanged,
+    required T? value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -322,7 +391,7 @@ class _ProductScreenState extends State<ProductScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
+        child: DropdownButton<T>(
           isExpanded: true,
           hint: Text(
             hint,
@@ -336,94 +405,94 @@ class _ProductScreenState extends State<ProductScreen> {
             Icons.keyboard_arrow_down_rounded,
             color: Color(0xFF6B7280),
           ),
-          items: const [],
+          items: items,
           onChanged: onChanged,
         ),
       ),
     );
   }
 
-  Widget _buildProductList() {
-    final products = [
-      {
-        'code': '11131080-001',
-        'name': 'HS BOLD 10',
-        'price': 'Rp 45.000',
-        'status': 'TERSEDIA',
-        'statusColor': const Color(0xFF10B981),
-      },
-      {
-        'code': '11131080-002',
-        'name': 'HS LIGHT 5',
-        'price': 'Rp 32.500',
-        'status': 'TERSEDIA',
-        'statusColor': const Color(0xFF10B981),
-      },
-      {
-        'code': '11131080-003',
-        'name': 'HS REGULAR 8',
-        'price': 'Rp 38.000',
-        'status': 'HABIS',
-        'statusColor': const Color(0xFFEF4444),
-      },
-      {
-        'code': '11131080-004',
-        'name': 'HS PREMIUM 12',
-        'price': 'Rp 55.000',
-        'status': 'TERSEDIA',
-        'statusColor': const Color(0xFF10B981),
-      },
-    ];
+  Widget _buildProductListSection() {
+    return Consumer<ProductProvider>(
+      builder: (context, provider, _) {
+        if (provider.isLoading && provider.products.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        if (provider.errorMessage != null && provider.products.isEmpty) {
+          return Center(
+            child: Column(
+              children: [
+                Text(provider.errorMessage!),
+                ElevatedButton(
+                  onPressed: _fetchProducts,
+                  child: const Text('Coba Lagi'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final products = provider.products;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'DAFTAR PRODUK',
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF9CA3AF),
-                letterSpacing: 1.2,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'DAFTAR PRODUK',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF9CA3AF),
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                Text(
+                  '${products.length} Produk',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF6B7280),
+                  ),
+                ),
+              ],
             ),
-            Text(
-              '${products.length} Produk',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF6B7280),
+            const SizedBox(height: 16),
+            if (products.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Text('Tidak ada produk ditemukan'),
+                ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: products.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildProductCard(products[index]),
+                  );
+                },
               ),
-            ),
           ],
-        ),
-        const SizedBox(height: 16),
-        ...products.map(
-          (product) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildProductCard(
-              code: product['code'] as String,
-              name: product['name'] as String,
-              price: product['price'] as String,
-              status: product['status'] as String,
-              statusColor: product['statusColor'] as Color,
-            ),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 
-  Widget _buildProductCard({
-    required String code,
-    required String name,
-    required String price,
-    required String status,
-    required Color statusColor,
-  }) {
+  Widget _buildProductCard(ProductData product) {
+    final currencyFormat = NumberFormat.currency(
+      locale: 'id',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -431,7 +500,7 @@ class _ProductScreenState extends State<ProductScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const ProductDetailScreen(),
+              builder: (context) => ProductDetailScreen(productId: product.id),
             ),
           );
         },
@@ -469,7 +538,7 @@ class _ProductScreenState extends State<ProductScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      code,
+                      product.code,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: const Color(0xFF4C6FFF),
@@ -478,7 +547,7 @@ class _ProductScreenState extends State<ProductScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      name,
+                      product.name,
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -489,7 +558,7 @@ class _ProductScreenState extends State<ProductScreen> {
                     Row(
                       children: [
                         Text(
-                          'HARGA',
+                          'HARGA DASAR',
                           style: GoogleFonts.poppins(
                             fontSize: 10,
                             color: const Color(0xFF9CA3AF),
@@ -503,15 +572,21 @@ class _ProductScreenState extends State<ProductScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.1),
+                            color:
+                                (product.isActive
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFFEF4444))
+                                    .withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            status,
+                            product.isActive ? 'AKTIF' : 'NON-AKTIF',
                             style: GoogleFonts.poppins(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: statusColor,
+                              color: product.isActive
+                                  ? const Color(0xFF10B981)
+                                  : const Color(0xFFEF4444),
                             ),
                           ),
                         ),
@@ -519,7 +594,7 @@ class _ProductScreenState extends State<ProductScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      price,
+                      currencyFormat.format(product.basePrice),
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -529,8 +604,45 @@ class _ProductScreenState extends State<ProductScreen> {
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: () {},
+              PopupMenuButton<String>(
+                onSelected: (value) async {
+                  if (value == 'edit') {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            AddProductScreen(product: product),
+                      ),
+                    );
+                    if (result == true) {
+                      _fetchProducts();
+                    }
+                  } else if (value == 'delete') {
+                    _showDeleteConfirmation(product);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit_rounded, size: 20),
+                        SizedBox(width: 8),
+                        Text('Edit'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_rounded, color: Colors.red, size: 20),
+                        SizedBox(width: 8),
+                        Text('Hapus', style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  ),
+                ],
                 icon: const Icon(
                   Icons.more_vert_rounded,
                   color: Color(0xFF9CA3AF),
@@ -539,6 +651,43 @@ class _ProductScreenState extends State<ProductScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(ProductData product) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Produk'),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus produk ${product.name}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final auth = context.read<AuthProvider>();
+              if (auth.token != null) {
+                final success = await context
+                    .read<ProductProvider>()
+                    .deleteProduct(auth.token!, product.id);
+                if (success) {
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Produk berhasil dihapus')),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }

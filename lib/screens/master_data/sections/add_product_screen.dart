@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:myapp/models/product_model.dart';
+import 'package:myapp/providers/auth_provider.dart';
+import 'package:myapp/providers/category_provider.dart';
+import 'package:myapp/providers/product_provider.dart';
+import 'package:myapp/providers/unit_provider.dart';
 import 'package:myapp/screens/widgets/notification_icons.dart';
 import 'package:myapp/shared/base_color.dart';
+import 'package:provider/provider.dart';
 
 class AddProductScreen extends StatefulWidget {
-  const AddProductScreen({super.key});
+  final ProductData? product;
+  const AddProductScreen({super.key, this.product});
 
   @override
   State<AddProductScreen> createState() => _AddProductScreenState();
@@ -20,9 +27,26 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final TextEditingController _packagingController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
 
-  String? selectedCategory;
-  String? selectedUnit;
+  int? selectedCategoryId;
+  int? selectedUnitId;
   bool isActiveProduct = true;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.product != null) {
+      _productCodeController.text = widget.product!.code;
+      _productNameController.text = widget.product!.name;
+      _basePriceController.text = widget.product!.basePrice.toString();
+      _minStockController.text = widget.product!.minStock?.toString() ?? '';
+      _productTypeController.text = widget.product!.productionType ?? '';
+      _packagingController.text = widget.product!.packagingContent ?? '';
+      _descriptionController.text = widget.product!.description ?? '';
+      selectedCategoryId = widget.product!.categoryId;
+      selectedUnitId = widget.product!.baseUnitId;
+      isActiveProduct = widget.product!.isActive;
+    }
+  }
 
   @override
   void dispose() {
@@ -104,7 +128,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Tambah Produk',
+          widget.product == null ? 'Tambah Produk' : 'Edit Produk',
           style: GoogleFonts.poppins(
             fontSize: 28,
             fontWeight: FontWeight.bold,
@@ -113,7 +137,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Tambah produk baru ke katalog',
+          widget.product == null
+              ? 'Tambah produk baru ke katalog'
+              : 'Perbarui informasi produk',
           style: GoogleFonts.poppins(
             fontSize: 14,
             color: const Color(0xFF4C6FFF),
@@ -154,27 +180,53 @@ class _AddProductScreenState extends State<AddProductScreen> {
             isRequired: true,
           ),
           const SizedBox(height: 16),
-          _buildDropdownField(
-            label: 'Kategori',
-            hint: 'Pilih kategori',
-            value: selectedCategory,
-            isRequired: true,
-            onChanged: (value) {
-              setState(() {
-                selectedCategory = value;
-              });
+          Consumer<CategoryProvider>(
+            builder: (context, provider, _) {
+              return _buildDropdownField<int>(
+                label: 'Kategori',
+                hint: 'Pilih kategori',
+                value: selectedCategoryId,
+                isRequired: true,
+                items: provider.categories.map((c) {
+                  return DropdownMenuItem<int>(
+                    value: c.id,
+                    child: Text(
+                      c.name,
+                      style: GoogleFonts.poppins(fontSize: 14),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedCategoryId = value;
+                  });
+                },
+              );
             },
           ),
           const SizedBox(height: 16),
-          _buildDropdownField(
-            label: 'Satuan Dasar',
-            hint: 'Pilih satuan',
-            value: selectedUnit,
-            isRequired: true,
-            onChanged: (value) {
-              setState(() {
-                selectedUnit = value;
-              });
+          Consumer<UnitProvider>(
+            builder: (context, provider, _) {
+              return _buildDropdownField<int>(
+                label: 'Satuan Dasar',
+                hint: 'Pilih satuan',
+                value: selectedUnitId,
+                isRequired: true,
+                items: provider.units.map((u) {
+                  return DropdownMenuItem<int>(
+                    value: u.id,
+                    child: Text(
+                      u.name,
+                      style: GoogleFonts.poppins(fontSize: 14),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedUnitId = value;
+                  });
+                },
+              );
             },
           ),
           const SizedBox(height: 16),
@@ -284,11 +336,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
-  Widget _buildDropdownField({
+  Widget _buildDropdownField<T>({
     required String label,
     required String hint,
-    required String? value,
-    required ValueChanged<String?> onChanged,
+    required T? value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
     bool isRequired = false,
   }) {
     return Column(
@@ -323,7 +376,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: DropdownButtonHideUnderline(
-            child: DropdownButtonFormField<String>(
+            child: DropdownButtonFormField<T>(
               isExpanded: true,
               hint: Text(
                 hint,
@@ -337,11 +390,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 Icons.keyboard_arrow_down_rounded,
                 color: Color(0xFF6B7280),
               ),
-              items: const [],
+              items: items,
               onChanged: onChanged,
               validator: isRequired
                   ? (value) {
-                      if (value == null || value.isEmpty) {
+                      if (value == null) {
                         return '$label harus dipilih';
                       }
                       return null;
@@ -405,45 +458,111 @@ class _AddProductScreenState extends State<AddProductScreen> {
         const SizedBox(width: 12),
         Expanded(
           flex: 2,
-          child: ElevatedButton(
-            onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                // Handle save product
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Produk berhasil ditambahkan!',
-                      style: GoogleFonts.poppins(),
-                    ),
-                    backgroundColor: const Color(0xFF10B981),
+          child: Consumer<ProductProvider>(
+            builder: (context, provider, _) {
+              return ElevatedButton(
+                onPressed: provider.isLoading
+                    ? null
+                    : () async {
+                        if (_formKey.currentState!.validate()) {
+                          final auth = context.read<AuthProvider>();
+                          if (auth.token == null) return;
+
+                          final product = ProductData(
+                            id: widget.product?.id ?? 0,
+                            categoryId: selectedCategoryId!,
+                            code: _productCodeController.text,
+                            name: _productNameController.text,
+                            description: _descriptionController.text,
+                            baseUnitId: selectedUnitId!,
+                            basePrice:
+                                double.tryParse(_basePriceController.text) ?? 0,
+                            productionType: _productTypeController.text,
+                            packagingContent: _packagingController.text,
+                            minStock: int.tryParse(_minStockController.text),
+                            isActive: isActiveProduct,
+                          );
+
+                          bool success;
+                          if (widget.product == null) {
+                            success = await provider.addProduct(
+                              auth.token!,
+                              product,
+                            );
+                          } else {
+                            success = await provider.updateProduct(
+                              auth.token!,
+                              product,
+                            );
+                          }
+
+                          if (success) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    widget.product == null
+                                        ? 'Produk berhasil ditambahkan!'
+                                        : 'Produk berhasil diperbarui!',
+                                    style: GoogleFonts.poppins(),
+                                  ),
+                                  backgroundColor: const Color(0xFF10B981),
+                                ),
+                              );
+                              Navigator.pop(context, true);
+                            }
+                          } else {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    provider.errorMessage ??
+                                        'Gagal menyimpan produk',
+                                    style: GoogleFonts.poppins(),
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: BaseColor.primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                );
-                Navigator.pop(context);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: BaseColor.primaryColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 0,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.check_rounded, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Tambah Produk',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  elevation: 0,
                 ),
-              ],
-            ),
+                child: provider.isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.check_rounded, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            widget.product == null
+                                ? 'Tambah Produk'
+                                : 'Simpan Perubahan',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+              );
+            },
           ),
         ),
       ],

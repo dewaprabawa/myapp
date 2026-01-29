@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:myapp/models/category_model.dart';
+import 'package:myapp/providers/auth_provider.dart';
+import 'package:myapp/providers/category_provider.dart';
 import 'package:myapp/screens/widgets/notification_icons.dart';
 import 'package:myapp/shared/base_color.dart';
-import 'package:myapp/screens/master_data/sections/add_category_screen.dart';
+import 'package:provider/provider.dart';
 
 class CategoryScreen extends StatefulWidget {
   const CategoryScreen({super.key});
@@ -13,8 +16,26 @@ class CategoryScreen extends StatefulWidget {
 
 class _CategoryScreenState extends State<CategoryScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String? selectedCategory;
-  String? selectedStatus;
+  bool? selectedStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => _fetchCategories());
+  }
+
+  Future<void> _fetchCategories() async {
+    final auth = context.read<AuthProvider>();
+    if (auth.token != null) {
+      await context.read<CategoryProvider>().fetchCategories(
+        auth.token!,
+        search: _searchController.text.isNotEmpty
+            ? _searchController.text
+            : null,
+        isActive: selectedStatus,
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -27,21 +48,23 @@ class _CategoryScreenState extends State<CategoryScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: _buildAppBar(context),
-      drawer: _buildDrawer(),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            const SizedBox(height: 20),
-            _buildAddButton(),
-            const SizedBox(height: 20),
-            _buildSearchAndFilter(),
-            const SizedBox(height: 24),
-            _buildProductList(),
-          ],
+      body: RefreshIndicator(
+        onRefresh: _fetchCategories,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 20),
+              _buildAddButton(),
+              const SizedBox(height: 20),
+              _buildSearchAndFilter(),
+              const SizedBox(height: 24),
+              _buildCategoryList(),
+            ],
+          ),
         ),
       ),
     );
@@ -53,9 +76,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
       elevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Color(0xFF1A1A1A)),
-        onPressed: () {
-          Navigator.pop(context);
-        },
+        onPressed: () => Navigator.pop(context),
       ),
       title: Row(
         children: [
@@ -66,14 +87,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
-              Icons.inventory_2_rounded,
+              Icons.label_rounded,
               color: Colors.white,
               size: 20,
             ),
           ),
           const SizedBox(width: 12),
           Text(
-            'Inventory',
+            'Kategori Produk',
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -83,62 +104,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
         ],
       ),
       actions: const [NotificationIcons()],
-    );
-  }
-
-  Widget _buildDrawer() {
-    return Drawer(
-      child: Container(
-        color: Colors.white,
-        child: SafeArea(
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: BaseColor.primaryColor,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.inventory_2_rounded,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Inventory',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.home_rounded),
-                title: const Text('Dashboard'),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.list_alt_rounded),
-                title: const Text('Master Data'),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -156,7 +121,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Kelola master data kategori',
+          'Kelola master data kategori produk',
           style: GoogleFonts.poppins(
             fontSize: 14,
             color: const Color(0xFF6B7280),
@@ -170,12 +135,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (context) => const AddCategoryScreen(),
-          );
-        },
+        onPressed: () => _showCategoryFormDialog(),
         icon: const Icon(Icons.add_rounded),
         label: Text(
           'Tambah Kategori',
@@ -210,9 +170,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
       ),
       child: Column(
         children: [
-          // Search Field
           TextField(
             controller: _searchController,
+            onSubmitted: (_) => _fetchCategories(),
             decoration: InputDecoration(
               hintText: 'Cari kategori...',
               hintStyle: GoogleFonts.poppins(
@@ -236,40 +196,27 @@ class _CategoryScreenState extends State<CategoryScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          // Filter Row
           Row(
             children: [
               Expanded(
                 child: _buildDropdown(
                   hint: 'Status',
-                  value: selectedStatus,
+                  value: selectedStatus == null
+                      ? null
+                      : (selectedStatus! ? 'Aktif' : 'Non-Aktif'),
+                  items: ['Aktif', 'Non-Aktif'],
                   onChanged: (value) {
                     setState(() {
-                      selectedStatus = value;
+                      if (value == 'Aktif') {
+                        selectedStatus = true;
+                      } else if (value == 'Non-Aktif') {
+                        selectedStatus = false;
+                      } else {
+                        selectedStatus = null;
+                      }
                     });
+                    _fetchCategories();
                   },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Action Buttons
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.search_rounded, size: 20),
-                  label: const Text(''),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: BaseColor.primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -282,9 +229,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   onPressed: () {
                     setState(() {
                       _searchController.clear();
-                      selectedCategory = null;
                       selectedStatus = null;
                     });
+                    _fetchCategories();
                   },
                   icon: const Icon(Icons.refresh_rounded),
                   color: const Color(0xFF6B7280),
@@ -300,6 +247,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   Widget _buildDropdown({
     required String hint,
     required String? value,
+    required List<String> items,
     required ValueChanged<String?> onChanged,
   }) {
     return Container(
@@ -323,98 +271,76 @@ class _CategoryScreenState extends State<CategoryScreen> {
             Icons.keyboard_arrow_down_rounded,
             color: Color(0xFF6B7280),
           ),
-          items: const [],
+          items: items.map((String item) {
+            return DropdownMenuItem<String>(
+              value: item,
+              child: Text(item, style: GoogleFonts.poppins(fontSize: 14)),
+            );
+          }).toList(),
           onChanged: onChanged,
         ),
       ),
     );
   }
 
-  Widget _buildProductList() {
-    final products = [
-      {
-        'code': '11131080-001',
-        'name': 'HS BOLD 10',
-        'price': 'Rp 45.000',
-        'status': 'TERSEDIA',
-        'statusColor': const Color(0xFF10B981),
-      },
-      {
-        'code': '11131080-002',
-        'name': 'HS LIGHT 5',
-        'price': 'Rp 32.500',
-        'status': 'TERSEDIA',
-        'statusColor': const Color(0xFF10B981),
-      },
-      {
-        'code': '11131080-003',
-        'name': 'HS REGULAR 8',
-        'price': 'Rp 38.000',
-        'status': 'HABIS',
-        'statusColor': const Color(0xFFEF4444),
-      },
-      {
-        'code': '11131080-004',
-        'name': 'HS PREMIUM 12',
-        'price': 'Rp 55.000',
-        'status': 'TERSEDIA',
-        'statusColor': const Color(0xFF10B981),
-      },
-    ];
+  Widget _buildCategoryList() {
+    return Consumer<CategoryProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading && provider.categories.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        if (provider.errorMessage != null && provider.categories.isEmpty) {
+          return Center(child: Text(provider.errorMessage!));
+        }
+
+        if (provider.categories.isEmpty) {
+          return const Center(child: Text('Tidak ada kategori ditemukan'));
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'DAFTAR PRODUK',
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF9CA3AF),
-                letterSpacing: 1.2,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'DAFTAR KATEGORI',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF9CA3AF),
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                Text(
+                  '${provider.categories.length} Item',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF6B7280),
+                  ),
+                ),
+              ],
             ),
-            Text(
-              '${products.length} Produk',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF6B7280),
+            const SizedBox(height: 16),
+            ...provider.categories.map(
+              (category) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildCategoryCard(category),
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 16),
-        ...products.map(
-          (product) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildProductCard(
-              code: product['code'] as String,
-              name: product['name'] as String,
-              price: product['price'] as String,
-              status: product['status'] as String,
-              statusColor: product['statusColor'] as Color,
-            ),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 
-  Widget _buildProductCard({
-    required String code,
-    required String name,
-    required String price,
-    required String status,
-    required Color statusColor,
-  }) {
+  Widget _buildCategoryCard(CategoryData category) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {},
+        onTap: () => _showCategoryFormDialog(category: category),
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -438,7 +364,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
-                  Icons.inventory_2_outlined,
+                  Icons.label_outline_rounded,
                   color: Color(0xFF6B7280),
                   size: 28,
                 ),
@@ -449,68 +375,77 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      code,
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: const Color(0xFF4C6FFF),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      name,
+                      category.name,
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF1A1A1A),
                       ),
                     ),
+                    if (category.description != null &&
+                        category.description!.isNotEmpty)
+                      Text(
+                        category.description!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: const Color(0xFF6B7280),
+                        ),
+                      ),
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Text(
-                          'HARGA',
-                          style: GoogleFonts.poppins(
-                            fontSize: 10,
-                            color: const Color(0xFF9CA3AF),
-                            fontWeight: FontWeight.w500,
-                          ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: (category.isActive ? Colors.green : Colors.grey)
+                            .withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        category.isActive ? 'AKTIF' : 'NON-AKTIF',
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: category.isActive ? Colors.green : Colors.grey,
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            status,
-                            style: GoogleFonts.poppins(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: statusColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      price,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1A1A1A),
                       ),
                     ),
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: () {},
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    _showCategoryFormDialog(category: category);
+                  } else if (value == 'delete') {
+                    _showDeleteConfirmation(category.id);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit_rounded, size: 18),
+                        SizedBox(width: 8),
+                        Text('Edit'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_rounded, size: 18, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Hapus', style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  ),
+                ],
                 icon: const Icon(
                   Icons.more_vert_rounded,
                   color: Color(0xFF9CA3AF),
@@ -521,5 +456,236 @@ class _CategoryScreenState extends State<CategoryScreen> {
         ),
       ),
     );
+  }
+
+  void _showCategoryFormDialog({CategoryData? category}) {
+    showDialog(
+      context: context,
+      builder: (context) => CategoryFormDialog(category: category),
+    ).then((value) {
+      if (value == true) {
+        _fetchCategories();
+      }
+    });
+  }
+
+  void _showDeleteConfirmation(int id) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Kategori'),
+        content: const Text('Apakah Anda yakin ingin menghapus kategori ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final auth = context.read<AuthProvider>();
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              if (auth.token != null) {
+                final success = await context
+                    .read<CategoryProvider>()
+                    .deleteCategory(auth.token!, id);
+                if (mounted) Navigator.pop(context);
+                if (success) {
+                  if (mounted) {
+                    scaffoldMessenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Kategori berhasil dihapus'),
+                      ),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CategoryFormDialog extends StatefulWidget {
+  final CategoryData? category;
+
+  const CategoryFormDialog({super.key, this.category});
+
+  @override
+  State<CategoryFormDialog> createState() => _CategoryFormDialogState();
+}
+
+class _CategoryFormDialogState extends State<CategoryFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameController;
+  late TextEditingController _descriptionController;
+  late bool _isActive;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.category?.name ?? '');
+    _descriptionController = TextEditingController(
+      text: widget.category?.description ?? '',
+    );
+    _isActive = widget.category?.isActive ?? true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<CategoryProvider>();
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        constraints: const BoxConstraints(maxWidth: 400),
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.category == null ? 'Tambah Kategori' : 'Edit Kategori',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildTextField('Nama Kategori', _nameController, true),
+              const SizedBox(height: 16),
+              _buildTextField(
+                'Deskripsi',
+                _descriptionController,
+                false,
+                maxLines: 3,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Aktif'),
+                  Switch(
+                    value: _isActive,
+                    onChanged: (value) => setState(() => _isActive = value),
+                    activeTrackColor: BaseColor.primaryColor,
+                    activeColor: Colors.white,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Batal'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: provider.isLoading ? null : _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: BaseColor.primaryColor,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: provider.isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(widget.category == null ? 'Tambah' : 'Simpan'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller,
+    bool required, {
+    int maxLines = 1,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          maxLines: maxLines,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: const Color(0xFFF5F7FA),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
+          validator: required
+              ? (v) => v == null || v.isEmpty ? 'Harus diisi' : null
+              : null,
+        ),
+      ],
+    );
+  }
+
+  void _save() async {
+    if (_formKey.currentState!.validate()) {
+      final auth = context.read<AuthProvider>();
+      if (auth.token == null) return;
+
+      final category = CategoryData(
+        id: widget.category?.id ?? 0,
+        name: _nameController.text,
+        description: _descriptionController.text,
+        isActive: _isActive,
+      );
+
+      bool success;
+      if (widget.category == null) {
+        success = await context.read<CategoryProvider>().addCategory(
+          auth.token!,
+          category,
+        );
+      } else {
+        success = await context.read<CategoryProvider>().updateCategory(
+          auth.token!,
+          category,
+        );
+      }
+
+      if (success && mounted) {
+        Navigator.pop(context, true);
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.read<CategoryProvider>().errorMessage ??
+                  'Terjadi kesalahan',
+            ),
+          ),
+        );
+      }
+    }
   }
 }
