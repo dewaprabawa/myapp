@@ -6,6 +6,9 @@ import 'package:myapp/screens/widgets/notification_icons.dart';
 import 'package:myapp/shared/base_color.dart';
 import 'package:myapp/screens/master_data/master_data_screen.dart';
 import 'package:myapp/screens/purchase_order/purchase_order_screen.dart';
+import 'package:myapp/screens/inventory/inventory_screen.dart';
+import 'package:myapp/screens/stock_opname/stock_opname_screen.dart';
+import 'package:myapp/screens/delivery_order/delivery_order_screen.dart';
 import 'package:myapp/screens/profile_screen.dart';
 import 'package:myapp/screens/users/users_screen.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -312,16 +315,40 @@ class _HomeScreenState extends State<HomeScreen>
               icon: Icons.inventory_rounded,
               label: 'Inventory',
               color: const Color(0xFF10B981),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const InventoryScreen(),
+                  ),
+                );
+              },
             ),
             _buildQuickMenuItem(
               icon: Icons.grid_view_rounded,
               label: 'Stock Opname',
               color: const Color(0xFFF59E0B),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const StockOpnameScreen(),
+                  ),
+                );
+              },
             ),
             _buildQuickMenuItem(
               icon: Icons.local_shipping_rounded,
               label: 'Delivery Order',
               color: const Color(0xFFEF4444),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DeliveryOrderScreen(),
+                  ),
+                );
+              },
             ),
             _buildQuickMenuItem(
               icon: Icons.account_balance_wallet_rounded,
