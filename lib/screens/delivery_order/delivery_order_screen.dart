@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:myapp/screens/widgets/notification_icons.dart';
+import 'package:distributorsfast/screens/widgets/notification_icons.dart';
 import 'package:provider/provider.dart';
-import 'package:myapp/providers/auth_provider.dart';
-import 'package:myapp/providers/delivery_order_provider.dart';
-import 'package:myapp/providers/partner_provider.dart';
-import 'package:myapp/screens/delivery_order/delivery_order_detail_screen.dart';
+import 'package:distributorsfast/providers/auth_provider.dart';
+import 'package:distributorsfast/providers/delivery_order_provider.dart';
+import 'package:distributorsfast/providers/partner_provider.dart';
+import 'package:distributorsfast/screens/delivery_order/delivery_order_detail_screen.dart';
 import 'package:intl/intl.dart';
 
 class DeliveryOrderScreen extends StatefulWidget {

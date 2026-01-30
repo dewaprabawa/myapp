@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:myapp/models/unit_model.dart';
-import 'package:myapp/providers/auth_provider.dart';
-import 'package:myapp/providers/unit_provider.dart';
-import 'package:myapp/screens/widgets/notification_icons.dart';
-import 'package:myapp/shared/base_color.dart';
+import 'package:distributorsfast/models/unit_model.dart';
+import 'package:distributorsfast/providers/auth_provider.dart';
+import 'package:distributorsfast/providers/unit_provider.dart';
+import 'package:distributorsfast/screens/widgets/notification_icons.dart';
+import 'package:distributorsfast/shared/base_color.dart';
 import 'package:provider/provider.dart';
 
 class UnitScreen extends StatefulWidget {

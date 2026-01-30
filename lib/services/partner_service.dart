@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:myapp/models/partner_model.dart';
+import 'package:distributorsfast/models/partner_model.dart';
 
 class PartnerService {
   static const String baseUrl = 'https://im.cekweb.cloud/api';

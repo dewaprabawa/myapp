@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:myapp/providers/auth_provider.dart';
-import 'package:myapp/providers/delivery_order_provider.dart';
-import 'package:myapp/models/delivery_order_model.dart';
+import 'package:distributorsfast/providers/auth_provider.dart';
+import 'package:distributorsfast/providers/delivery_order_provider.dart';
+import 'package:distributorsfast/models/delivery_order_model.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 

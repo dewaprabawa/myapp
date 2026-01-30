@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:myapp/screens/master_data/sections/category_screen.dart';
-import 'package:myapp/screens/master_data/sections/partner_distributor_screen.dart';
-import 'package:myapp/screens/master_data/sections/unit_screen.dart';
-import 'package:myapp/screens/widgets/notification_icons.dart';
-import 'package:myapp/shared/base_color.dart';
-import 'package:myapp/screens/master_data/sections/product_screen.dart';
+import 'package:distributorsfast/screens/master_data/sections/category_screen.dart';
+import 'package:distributorsfast/screens/master_data/sections/partner_distributor_screen.dart';
+import 'package:distributorsfast/screens/master_data/sections/unit_screen.dart';
+import 'package:distributorsfast/screens/widgets/notification_icons.dart';
+import 'package:distributorsfast/shared/base_color.dart';
+import 'package:distributorsfast/screens/master_data/sections/product_screen.dart';
 
 class MasterDataScreen extends StatelessWidget {
   const MasterDataScreen({super.key});

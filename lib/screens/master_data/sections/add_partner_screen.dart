@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:myapp/models/partner_model.dart';
-import 'package:myapp/providers/auth_provider.dart';
-import 'package:myapp/providers/partner_provider.dart';
-import 'package:myapp/shared/base_color.dart';
+import 'package:distributorsfast/models/partner_model.dart';
+import 'package:distributorsfast/providers/auth_provider.dart';
+import 'package:distributorsfast/providers/partner_provider.dart';
+import 'package:distributorsfast/shared/base_color.dart';
 import 'package:provider/provider.dart';
 
 class AddPartnerScreen extends StatefulWidget {

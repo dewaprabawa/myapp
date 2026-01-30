@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:myapp/providers/auth_provider.dart';
-import 'package:myapp/providers/partner_provider.dart';
-import 'package:myapp/providers/product_provider.dart';
-import 'package:myapp/providers/stock_opname_provider.dart';
-import 'package:myapp/models/product_model.dart';
+import 'package:distributorsfast/providers/auth_provider.dart';
+import 'package:distributorsfast/providers/partner_provider.dart';
+import 'package:distributorsfast/providers/product_provider.dart';
+import 'package:distributorsfast/providers/stock_opname_provider.dart';
+import 'package:distributorsfast/models/product_model.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 

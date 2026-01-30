@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/models/pagination_model.dart';
-import 'package:myapp/models/stock_opname_model.dart';
-import 'package:myapp/services/stock_opname_service.dart';
+import 'package:distributorsfast/models/pagination_model.dart';
+import 'package:distributorsfast/models/stock_opname_model.dart';
+import 'package:distributorsfast/services/stock_opname_service.dart';
 
 class StockOpnameProvider with ChangeNotifier {
   final StockOpnameService _service = StockOpnameService();

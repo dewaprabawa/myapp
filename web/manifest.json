@@ -1,6 +1,6 @@
 {
-    "name": "myapp",
-    "short_name": "myapp",
+    "name": "distributorsfast",
+    "short_name": "distributorsfast",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

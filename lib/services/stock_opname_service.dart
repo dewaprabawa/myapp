@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:myapp/models/stock_opname_model.dart';
+import 'package:distributorsfast/models/stock_opname_model.dart';
 
 class StockOpnameService {
   static const String baseUrl = 'https://im.cekweb.cloud/api';

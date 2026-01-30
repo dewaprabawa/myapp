@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:myapp/models/delivery_order_model.dart';
+import 'package:distributorsfast/models/delivery_order_model.dart';
 
 class DeliveryOrderService {
   static const String baseUrl = 'https://im.cekweb.cloud/api';

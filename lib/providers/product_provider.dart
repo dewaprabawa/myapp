@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/models/pagination_model.dart';
-import 'package:myapp/models/product_model.dart';
-import 'package:myapp/services/product_service.dart';
+import 'package:distributorsfast/models/pagination_model.dart';
+import 'package:distributorsfast/models/product_model.dart';
+import 'package:distributorsfast/services/product_service.dart';
 
 class ProductProvider with ChangeNotifier {
   final ProductService _service = ProductService();

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/models/pagination_model.dart';
-import 'package:myapp/models/purchase_order_model.dart';
-import 'package:myapp/services/purchase_order_service.dart';
+import 'package:distributorsfast/models/pagination_model.dart';
+import 'package:distributorsfast/models/purchase_order_model.dart';
+import 'package:distributorsfast/services/purchase_order_service.dart';
 
 class PurchaseOrderProvider with ChangeNotifier {
   final PurchaseOrderService _service = PurchaseOrderService();

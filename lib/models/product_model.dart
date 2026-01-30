@@ -1,6 +1,6 @@
-import 'package:myapp/models/pagination_model.dart';
-import 'package:myapp/models/category_model.dart';
-import 'package:myapp/models/unit_model.dart';
+import 'package:distributorsfast/models/pagination_model.dart';
+import 'package:distributorsfast/models/category_model.dart';
+import 'package:distributorsfast/models/unit_model.dart';
 
 class ProductResponse {
   final bool success;

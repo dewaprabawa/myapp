@@ -1,4 +1,4 @@
-import 'package:myapp/models/pagination_model.dart';
+import 'package:distributorsfast/models/pagination_model.dart';
 
 class PartnerResponse {
   final bool success;

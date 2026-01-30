@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:myapp/screens/login_page.dart';
+import 'package:distributorsfast/screens/login_page.dart';
 import 'package:provider/provider.dart';
-import 'package:myapp/providers/auth_provider.dart';
-import 'package:myapp/providers/user_provider.dart';
-import 'package:myapp/providers/dashboard_provider.dart';
-import 'package:myapp/providers/category_provider.dart';
-import 'package:myapp/providers/unit_provider.dart';
-import 'package:myapp/providers/product_provider.dart';
-import 'package:myapp/providers/partner_provider.dart';
-import 'package:myapp/providers/purchase_order_provider.dart';
-import 'package:myapp/providers/inventory_provider.dart';
-import 'package:myapp/providers/stock_opname_provider.dart';
-import 'package:myapp/providers/delivery_order_provider.dart';
-import 'package:myapp/providers/invoice_provider.dart';
-import 'package:myapp/providers/payment_provider.dart';
-import 'package:myapp/providers/report_provider.dart';
+import 'package:distributorsfast/providers/auth_provider.dart';
+import 'package:distributorsfast/providers/user_provider.dart';
+import 'package:distributorsfast/providers/dashboard_provider.dart';
+import 'package:distributorsfast/providers/category_provider.dart';
+import 'package:distributorsfast/providers/unit_provider.dart';
+import 'package:distributorsfast/providers/product_provider.dart';
+import 'package:distributorsfast/providers/partner_provider.dart';
+import 'package:distributorsfast/providers/purchase_order_provider.dart';
+import 'package:distributorsfast/providers/inventory_provider.dart';
+import 'package:distributorsfast/providers/stock_opname_provider.dart';
+import 'package:distributorsfast/providers/delivery_order_provider.dart';
+import 'package:distributorsfast/providers/invoice_provider.dart';
+import 'package:distributorsfast/providers/payment_provider.dart';
+import 'package:distributorsfast/providers/report_provider.dart';
 
-import 'package:myapp/screens/home_screen.dart';
+import 'package:distributorsfast/screens/home_screen.dart';
 
 void main() {
   runApp(
@@ -81,7 +81,7 @@ class _MyAppState extends State<MyApp> {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
-          title: 'Inventory Management',
+          title: 'Distributors Fast',
           theme: ThemeData(
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(

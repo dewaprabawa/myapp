@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:myapp/screens/widgets/notification_icons.dart';
+import 'package:distributorsfast/screens/widgets/notification_icons.dart';
 import 'package:provider/provider.dart';
-import 'package:myapp/providers/auth_provider.dart';
-import 'package:myapp/providers/inventory_provider.dart';
-import 'package:myapp/providers/category_provider.dart';
+import 'package:distributorsfast/providers/auth_provider.dart';
+import 'package:distributorsfast/providers/inventory_provider.dart';
+import 'package:distributorsfast/providers/category_provider.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});

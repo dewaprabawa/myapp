@@ -1,7 +1,7 @@
-import 'package:myapp/models/pagination_model.dart';
-import 'package:myapp/models/partner_model.dart';
-import 'package:myapp/models/product_model.dart';
-import 'package:myapp/models/unit_model.dart';
+import 'package:distributorsfast/models/pagination_model.dart';
+import 'package:distributorsfast/models/partner_model.dart';
+import 'package:distributorsfast/models/product_model.dart';
+import 'package:distributorsfast/models/unit_model.dart';
 
 class PurchaseOrderResponse {
   final bool success;

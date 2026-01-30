@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/models/inventory_model.dart';
-import 'package:myapp/models/pagination_model.dart';
-import 'package:myapp/services/inventory_service.dart';
+import 'package:distributorsfast/models/inventory_model.dart';
+import 'package:distributorsfast/models/pagination_model.dart';
+import 'package:distributorsfast/services/inventory_service.dart';
 
 class InventoryProvider with ChangeNotifier {
   final InventoryService _service = InventoryService();

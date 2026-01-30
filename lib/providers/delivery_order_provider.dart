@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/models/delivery_order_model.dart';
-import 'package:myapp/models/pagination_model.dart';
-import 'package:myapp/services/delivery_order_service.dart';
+import 'package:distributorsfast/models/delivery_order_model.dart';
+import 'package:distributorsfast/models/pagination_model.dart';
+import 'package:distributorsfast/services/delivery_order_service.dart';
 
 class DeliveryOrderProvider with ChangeNotifier {
   final DeliveryOrderService _service = DeliveryOrderService();

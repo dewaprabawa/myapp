@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/models/pagination_model.dart';
-import 'package:myapp/models/partner_model.dart';
-import 'package:myapp/services/partner_service.dart';
+import 'package:distributorsfast/models/pagination_model.dart';
+import 'package:distributorsfast/models/partner_model.dart';
+import 'package:distributorsfast/services/partner_service.dart';
 
 class PartnerProvider with ChangeNotifier {
   final PartnerService _service = PartnerService();

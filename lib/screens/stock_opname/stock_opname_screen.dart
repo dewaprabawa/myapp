@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:myapp/screens/widgets/notification_icons.dart';
+import 'package:distributorsfast/screens/widgets/notification_icons.dart';
 import 'package:provider/provider.dart';
-import 'package:myapp/providers/auth_provider.dart';
-import 'package:myapp/providers/stock_opname_provider.dart';
-import 'package:myapp/providers/partner_provider.dart';
-import 'package:myapp/screens/stock_opname/create_stock_opname_screen.dart';
-import 'package:myapp/screens/stock_opname/stock_opname_detail_screen.dart';
+import 'package:distributorsfast/providers/auth_provider.dart';
+import 'package:distributorsfast/providers/stock_opname_provider.dart';
+import 'package:distributorsfast/providers/partner_provider.dart';
+import 'package:distributorsfast/screens/stock_opname/create_stock_opname_screen.dart';
+import 'package:distributorsfast/screens/stock_opname/stock_opname_detail_screen.dart';
 import 'package:intl/intl.dart';
 
 class StockOpnameScreen extends StatefulWidget {

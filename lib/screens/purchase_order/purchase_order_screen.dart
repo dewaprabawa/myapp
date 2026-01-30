@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:myapp/screens/widgets/notification_icons.dart';
-import 'package:myapp/shared/base_color.dart';
-import 'package:myapp/screens/purchase_order/sections/daftar_po_screen.dart';
-import 'package:myapp/screens/purchase_order/sections/summary_pabrik_screen.dart';
+import 'package:distributorsfast/screens/widgets/notification_icons.dart';
+import 'package:distributorsfast/shared/base_color.dart';
+import 'package:distributorsfast/screens/purchase_order/sections/daftar_po_screen.dart';
+import 'package:distributorsfast/screens/purchase_order/sections/summary_pabrik_screen.dart';
 
 class PurchaseOrderScreen extends StatelessWidget {
   const PurchaseOrderScreen({super.key});
