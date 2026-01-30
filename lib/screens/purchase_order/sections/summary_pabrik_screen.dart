@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/screens/widgets/notification_icons.dart';
 import 'package:myapp/shared/base_color.dart';
+import 'package:provider/provider.dart';
+import 'package:myapp/providers/auth_provider.dart';
+import 'package:myapp/providers/purchase_order_provider.dart';
+import 'package:intl/intl.dart';
 
 class SummaryPabrikScreen extends StatefulWidget {
   const SummaryPabrikScreen({super.key});
@@ -17,9 +21,24 @@ class _SummaryPabrikScreenState extends State<SummaryPabrikScreen> {
   @override
   void initState() {
     super.initState();
-    // Set default dates
-    _startDate = DateTime(2025, 12, 29);
-    _endDate = DateTime(2026, 1, 28);
+    // Set default dates (last 30 days)
+    _endDate = DateTime.now();
+    _startDate = _endDate!.subtract(const Duration(days: 30));
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
+  }
+
+  void _loadData() {
+    final token = context.read<AuthProvider>().token;
+    if (token != null && _startDate != null && _endDate != null) {
+      context.read<PurchaseOrderProvider>().fetchPOSummary(
+        token,
+        startDate: DateFormat('yyyy-MM-dd').format(_startDate!),
+        endDate: DateFormat('yyyy-MM-dd').format(_endDate!),
+      );
+    }
   }
 
   @override
@@ -203,9 +222,7 @@ class _SummaryPabrikScreenState extends State<SummaryPabrikScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () {
-                // TODO: Apply filter
-              },
+              onPressed: _loadData,
               icon: const Icon(Icons.search_rounded, size: 20),
               label: Text(
                 'Tampilkan',
@@ -308,91 +325,233 @@ class _SummaryPabrikScreenState extends State<SummaryPabrikScreen> {
   }
 
   Widget _buildDataTable() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Table header - Scrollable horizontally
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-              ),
-              child: Row(
+    return Consumer<PurchaseOrderProvider>(
+      builder: (context, poProvider, _) {
+        if (poProvider.isLoading && poProvider.poSummary.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(40),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (poProvider.errorMessage != null && poProvider.poSummary.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(40),
+              child: Column(
                 children: [
-                  SizedBox(width: 120, child: _buildTableHeader('KODE PRODUK')),
-                  const SizedBox(width: 16),
-                  SizedBox(width: 150, child: _buildTableHeader('NAMA PRODUK')),
-                  const SizedBox(width: 16),
-                  SizedBox(width: 100, child: _buildTableHeader('SATUAN')),
-                  const SizedBox(width: 16),
-                  SizedBox(
-                    width: 120,
-                    child: _buildTableHeader('TOTAL QUANTITY'),
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Terjadi Kesalahan',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(width: 16),
-                  SizedBox(width: 100, child: _buildTableHeader('JUMLAH PO')),
+                  Text(poProvider.errorMessage!),
+                  ElevatedButton(
+                    onPressed: _loadData,
+                    child: const Text('Coba Lagi'),
+                  ),
                 ],
               ),
             ),
+          );
+        }
+
+        if (poProvider.poSummary.isEmpty) {
+          return Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(40),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9FAFB),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      Icons.inbox_rounded,
+                      size: 56,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Tidak ada data untuk periode yang dipilih',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF6B7280),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Silakan pilih rentang tanggal dan klik Tampilkan',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: const Color(0xFF9CA3AF),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          // Empty state
-          Padding(
-            padding: const EdgeInsets.all(40),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              // Table header - Scrollable horizontally
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF9FAFB),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                    ),
                   ),
-                  child: Icon(
-                    Icons.inbox_rounded,
-                    size: 56,
-                    color: Colors.grey[400],
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 120,
+                        child: _buildTableHeader('KODE PRODUK'),
+                      ),
+                      const SizedBox(width: 16),
+                      SizedBox(
+                        width: 180,
+                        child: _buildTableHeader('NAMA PRODUK'),
+                      ),
+                      const SizedBox(width: 16),
+                      SizedBox(width: 100, child: _buildTableHeader('SATUAN')),
+                      const SizedBox(width: 16),
+                      SizedBox(
+                        width: 120,
+                        child: _buildTableHeader('TOTAL QUANTITY'),
+                      ),
+                      const SizedBox(width: 16),
+                      SizedBox(
+                        width: 100,
+                        child: _buildTableHeader('JUMLAH PO'),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  'Tidak ada data untuk periode yang dipilih',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF6B7280),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Silakan pilih rentang tanggal dan klik Tampilkan',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    color: const Color(0xFF9CA3AF),
-                  ),
-                ),
-              ],
-            ),
+              ),
+              // Data rows
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: poProvider.poSummary.length,
+                separatorBuilder: (context, index) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final summary = poProvider.poSummary[index];
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 120,
+                            child: Text(
+                              summary.productCode,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: BaseColor.primaryColor,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          SizedBox(
+                            width: 180,
+                            child: Text(
+                              summary.productName,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: const Color(0xFF1A1A1A),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          SizedBox(
+                            width: 100,
+                            child: Text(
+                              summary.unitName,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: const Color(0xFF6B7280),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          SizedBox(
+                            width: 120,
+                            child: Text(
+                              summary.totalQuantity.toString(),
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1A1A1A),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          SizedBox(
+                            width: 100,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${summary.totalOrders} PO',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

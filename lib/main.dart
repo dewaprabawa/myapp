@@ -9,6 +9,7 @@ import 'package:myapp/providers/category_provider.dart';
 import 'package:myapp/providers/unit_provider.dart';
 import 'package:myapp/providers/product_provider.dart';
 import 'package:myapp/providers/partner_provider.dart';
+import 'package:myapp/providers/purchase_order_provider.dart';
 
 import 'package:myapp/screens/home_screen.dart';
 
@@ -24,6 +25,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => PartnerProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider(create: (_) => PurchaseOrderProvider()),
       ],
       child: const MyApp(),
     ),

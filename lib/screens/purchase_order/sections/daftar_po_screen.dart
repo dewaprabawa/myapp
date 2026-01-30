@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/screens/widgets/notification_icons.dart';
 import 'package:myapp/shared/base_color.dart';
+import 'package:provider/provider.dart';
+import 'package:myapp/providers/auth_provider.dart';
+import 'package:myapp/providers/purchase_order_provider.dart';
+import 'package:myapp/providers/partner_provider.dart';
+import 'package:intl/intl.dart';
 
 class DaftarPOScreen extends StatefulWidget {
   const DaftarPOScreen({super.key});
@@ -12,9 +17,40 @@ class DaftarPOScreen extends StatefulWidget {
 
 class _DaftarPOScreenState extends State<DaftarPOScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String? _selectedPartner;
+  int? _selectedPartnerId;
   String? _selectedStatus;
   int _itemsPerPage = 15;
+  int _currentPage = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+      _loadPartners();
+    });
+  }
+
+  void _loadData() {
+    final token = context.read<AuthProvider>().token;
+    if (token != null) {
+      context.read<PurchaseOrderProvider>().fetchPurchaseOrders(
+        token,
+        search: _searchController.text.isEmpty ? null : _searchController.text,
+        partnerId: _selectedPartnerId,
+        status: _selectedStatus?.toLowerCase(),
+        perPage: _itemsPerPage,
+        page: _currentPage,
+      );
+    }
+  }
+
+  void _loadPartners() {
+    final token = context.read<AuthProvider>().token;
+    if (token != null) {
+      context.read<PartnerProvider>().fetchPartners(token, perPage: 100);
+    }
+  }
 
   @override
   void dispose() {
@@ -52,9 +88,9 @@ class _DaftarPOScreenState extends State<DaftarPOScreen> {
       backgroundColor: Colors.white,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.menu, color: Color(0xFF1A1A1A)),
+        icon: const Icon(Icons.arrow_back, color: Color(0xFF1A1A1A)),
         onPressed: () {
-          Scaffold.of(context).openDrawer();
+          Navigator.pop(context);
         },
       ),
       title: Row(
@@ -82,12 +118,7 @@ class _DaftarPOScreenState extends State<DaftarPOScreen> {
           ),
         ],
       ),
-      actions: [
-        NotificationIcons(),
-        const SizedBox(width: 8),
-        _buildProfileButton(),
-        const SizedBox(width: 16),
-      ],
+      actions: [NotificationIcons()],
     );
   }
 
@@ -287,51 +318,59 @@ class _DaftarPOScreenState extends State<DaftarPOScreen> {
           ),
           const SizedBox(height: 12),
           // Partner dropdown
-          DropdownButtonFormField<String>(
-            value: _selectedPartner,
-            decoration: InputDecoration(
-              hintText: 'Pilih Partner',
-              hintStyle: GoogleFonts.poppins(
-                color: const Color(0xFF9CA3AF),
-                fontSize: 14,
-              ),
-              filled: true,
-              fillColor: const Color(0xFFF9FAFB),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFFE5E7EB),
-                  width: 1,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: BaseColor.primaryColor, width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-            ),
-            items: ['Partner A', 'Partner B', 'Partner C']
-                .map(
-                  (partner) => DropdownMenuItem(
-                    value: partner,
-                    child: Text(
-                      partner,
-                      style: GoogleFonts.poppins(fontSize: 14),
+          Consumer<PartnerProvider>(
+            builder: (context, partnerProvider, _) {
+              return DropdownButtonFormField<int>(
+                value: _selectedPartnerId,
+                decoration: InputDecoration(
+                  hintText: 'Pilih Partner',
+                  hintStyle: GoogleFonts.poppins(
+                    color: const Color(0xFF9CA3AF),
+                    fontSize: 14,
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFFF9FAFB),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFE5E7EB),
+                      width: 1,
                     ),
                   ),
-                )
-                .toList(),
-            onChanged: (value) {
-              setState(() {
-                _selectedPartner = value;
-              });
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: BaseColor.primaryColor,
+                      width: 2,
+                    ),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                ),
+                items: partnerProvider.partners
+                    .map(
+                      (partner) => DropdownMenuItem(
+                        value: partner.id,
+                        child: Text(
+                          partner.name,
+                          style: GoogleFonts.poppins(fontSize: 14),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedPartnerId = value;
+                  });
+                  _loadData();
+                },
+              );
             },
           ),
           const SizedBox(height: 12),
@@ -391,9 +430,10 @@ class _DaftarPOScreenState extends State<DaftarPOScreen> {
               onPressed: () {
                 setState(() {
                   _searchController.clear();
-                  _selectedPartner = null;
+                  _selectedPartnerId = null;
                   _selectedStatus = null;
                 });
+                _loadData();
               },
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -418,65 +458,213 @@ class _DaftarPOScreenState extends State<DaftarPOScreen> {
   }
 
   Widget _buildDataTable() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Table header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+    return Consumer<PurchaseOrderProvider>(
+      builder: (context, poProvider, _) {
+        if (poProvider.isLoading && poProvider.purchaseOrders.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(40),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (poProvider.errorMessage != null &&
+            poProvider.purchaseOrders.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(40),
+              child: Column(
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Terjadi Kesalahan',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  ),
+                  Text(poProvider.errorMessage!),
+                  ElevatedButton(
+                    onPressed: _loadData,
+                    child: const Text('Coba Lagi'),
+                  ),
+                ],
               ),
             ),
-            child: Row(
-              children: [
-                Expanded(flex: 2, child: _buildTableHeader('NO. PO')),
-                Expanded(flex: 3, child: _buildTableHeader('PARTNER')),
-                Expanded(flex: 2, child: _buildTableHeader('TANGGAL')),
-              ],
+          );
+        }
+
+        if (poProvider.purchaseOrders.isEmpty) {
+          return Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
             ),
+            child: Padding(
+              padding: const EdgeInsets.all(40),
+              child: Column(
+                children: [
+                  Icon(Icons.inbox_rounded, size: 64, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Tidak ada data',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF6B7280),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Belum ada purchase order yang tersedia',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: const Color(0xFF9CA3AF),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          // Empty state
-          Padding(
-            padding: const EdgeInsets.all(40),
-            child: Column(
-              children: [
-                Icon(Icons.inbox_rounded, size: 64, color: Colors.grey[300]),
-                const SizedBox(height: 16),
-                Text(
-                  'Tidak ada data',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF6B7280),
+          child: Column(
+            children: [
+              // Table header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF9FAFB),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Belum ada purchase order yang tersedia',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: const Color(0xFF9CA3AF),
-                  ),
+                child: Row(
+                  children: [
+                    Expanded(flex: 3, child: _buildTableHeader('NO. PO')),
+                    Expanded(flex: 3, child: _buildTableHeader('PARTNER')),
+                    Expanded(flex: 2, child: _buildTableHeader('TANGGAL')),
+                    Expanded(flex: 2, child: _buildTableHeader('STATUS')),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              // Data rows
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: poProvider.purchaseOrders.length,
+                separatorBuilder: (context, index) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final po = poProvider.purchaseOrders[index];
+                  return InkWell(
+                    onTap: () {
+                      // Navigate to detail
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              po.poNumber,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: BaseColor.primaryColor,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              po.partner?.name ?? '-',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: const Color(0xFF1A1A1A),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              DateFormat('dd/MM/yyyy').format(po.orderDate),
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: const Color(0xFF6B7280),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: _buildStatusBadge(po.status),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _buildStatusBadge(String status) {
+    Color color;
+    switch (status.toLowerCase()) {
+      case 'draft':
+        color = Colors.grey;
+        break;
+      case 'submitted':
+        color = Colors.blue;
+        break;
+      case 'approved':
+        color = Colors.green;
+        break;
+      case 'completed':
+        color = Colors.teal;
+        break;
+      case 'cancelled':
+        color = Colors.red;
+        break;
+      case 'rejected':
+        color = Colors.orange;
+        break;
+      default:
+        color = Colors.grey;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: GoogleFonts.poppins(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+        textAlign: TextAlign.center,
       ),
     );
   }
@@ -504,83 +692,128 @@ class _DaftarPOScreenState extends State<DaftarPOScreen> {
   }
 
   Widget _buildPagination() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+    return Consumer<PurchaseOrderProvider>(
+      builder: (context, poProvider, _) {
+        final meta = poProvider.meta;
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildPaginationButton(
-            icon: Icons.keyboard_double_arrow_left_rounded,
-            onTap: () {
-              // Go to first page
-            },
-          ),
-          const SizedBox(width: 8),
-          _buildPaginationButton(
-            icon: Icons.chevron_left_rounded,
-            onTap: () {
-              // Go to previous page
-            },
-          ),
-          const SizedBox(width: 16),
-          _buildPaginationButton(
-            icon: Icons.chevron_right_rounded,
-            onTap: () {
-              // Go to next page
-            },
-          ),
-          const SizedBox(width: 8),
-          _buildPaginationButton(
-            icon: Icons.keyboard_double_arrow_right_rounded,
-            onTap: () {
-              // Go to last page
-            },
-          ),
-          const SizedBox(width: 24),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  '$_itemsPerPage',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF1A1A1A),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildPaginationButton(
+                icon: Icons.keyboard_double_arrow_left_rounded,
+                onTap: (meta != null && meta.currentPage > 1)
+                    ? () {
+                        setState(() => _currentPage = 1);
+                        _loadData();
+                      }
+                    : null,
+              ),
+              const SizedBox(width: 8),
+              _buildPaginationButton(
+                icon: Icons.chevron_left_rounded,
+                onTap: (meta != null && meta.currentPage > 1)
+                    ? () {
+                        setState(() => _currentPage--);
+                        _loadData();
+                      }
+                    : null,
+              ),
+              const SizedBox(width: 16),
+              Text(
+                'Page ${meta?.currentPage ?? 1} of ${meta?.lastPage ?? 1}',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF6B7280),
+                ),
+              ),
+              const SizedBox(width: 16),
+              _buildPaginationButton(
+                icon: Icons.chevron_right_rounded,
+                onTap: (meta != null && meta.currentPage < meta.lastPage)
+                    ? () {
+                        setState(() => _currentPage++);
+                        _loadData();
+                      }
+                    : null,
+              ),
+              const SizedBox(width: 8),
+              _buildPaginationButton(
+                icon: Icons.keyboard_double_arrow_right_rounded,
+                onTap: (meta != null && meta.currentPage < meta.lastPage)
+                    ? () {
+                        setState(() => _currentPage = meta.lastPage);
+                        _loadData();
+                      }
+                    : null,
+              ),
+              const SizedBox(width: 24),
+              PopupMenuButton<int>(
+                initialValue: _itemsPerPage,
+                onSelected: (value) {
+                  setState(() {
+                    _itemsPerPage = value;
+                    _currentPage = 1;
+                  });
+                  _loadData();
+                },
+                itemBuilder: (context) => [15, 30, 50, 100]
+                    .map(
+                      (e) =>
+                          PopupMenuItem(value: e, child: Text('$e per page')),
+                    )
+                    .toList(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        '$_itemsPerPage',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF1A1A1A),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 20,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  size: 20,
-                  color: Color(0xFF6B7280),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildPaginationButton({
     required IconData icon,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
     return Material(
       color: Colors.transparent,
@@ -590,10 +823,21 @@ class _DaftarPOScreenState extends State<DaftarPOScreen> {
         child: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFE5E7EB)),
+            color: onTap == null ? Colors.grey[50] : Colors.transparent,
+            border: Border.all(
+              color: onTap == null
+                  ? const Color(0xFFF3F4F6)
+                  : const Color(0xFFE5E7EB),
+            ),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 20, color: const Color(0xFF6B7280)),
+          child: Icon(
+            icon,
+            size: 20,
+            color: onTap == null
+                ? const Color(0xFFD1D5DB)
+                : const Color(0xFF6B7280),
+          ),
         ),
       ),
     );

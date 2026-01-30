@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myapp/models/pagination_model.dart';
 import 'package:myapp/models/partner_model.dart';
 import 'package:myapp/services/partner_service.dart';
 
