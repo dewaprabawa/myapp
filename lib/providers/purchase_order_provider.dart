@@ -19,19 +19,27 @@ class PurchaseOrderProvider with ChangeNotifier {
 
   Future<void> fetchPurchaseOrders(
     String token, {
+    bool loadMore = false,
     String? search,
     int? partnerId,
     String? status,
     String? startDate,
     String? endDate,
     int perPage = 15,
-    int page = 1,
   }) async {
+    if (loadMore && (_meta == null || _meta!.currentPage >= _meta!.lastPage))
+      return;
+
     _isLoading = true;
+    if (!loadMore) {
+      _purchaseOrders = [];
+      _meta = null;
+    }
     _errorMessage = null;
     notifyListeners();
 
     try {
+      final nextPage = loadMore ? (_meta?.currentPage ?? 0) + 1 : 1;
       final response = await _service.getPurchaseOrders(
         token,
         search: search,
@@ -40,9 +48,14 @@ class PurchaseOrderProvider with ChangeNotifier {
         startDate: startDate,
         endDate: endDate,
         perPage: perPage,
-        page: page,
+        page: nextPage,
       );
-      _purchaseOrders = response.data;
+
+      if (loadMore) {
+        _purchaseOrders.addAll(response.data);
+      } else {
+        _purchaseOrders = response.data;
+      }
       _meta = response.meta;
     } catch (e) {
       _errorMessage = e.toString();

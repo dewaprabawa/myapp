@@ -17,10 +17,10 @@ class DaftarPOScreen extends StatefulWidget {
 
 class _DaftarPOScreenState extends State<DaftarPOScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   int? _selectedPartnerId;
   String? _selectedStatus;
   int _itemsPerPage = 15;
-  int _currentPage = 1;
 
   @override
   void initState() {
@@ -29,18 +29,26 @@ class _DaftarPOScreenState extends State<DaftarPOScreen> {
       _loadData();
       _loadPartners();
     });
+    _scrollController.addListener(_onScroll);
   }
 
-  void _loadData() {
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadData(loadMore: true);
+    }
+  }
+
+  void _loadData({bool loadMore = false}) {
     final token = context.read<AuthProvider>().token;
     if (token != null) {
       context.read<PurchaseOrderProvider>().fetchPurchaseOrders(
         token,
+        loadMore: loadMore,
         search: _searchController.text.isEmpty ? null : _searchController.text,
         partnerId: _selectedPartnerId,
         status: _selectedStatus?.toLowerCase(),
         perPage: _itemsPerPage,
-        page: _currentPage,
       );
     }
   }
@@ -54,6 +62,7 @@ class _DaftarPOScreenState extends State<DaftarPOScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -64,21 +73,21 @@ class _DaftarPOScreenState extends State<DaftarPOScreen> {
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: _buildAppBar(context),
       drawer: _buildDrawer(),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            const SizedBox(height: 24),
-            _buildFilterSection(),
-            const SizedBox(height: 24),
-            _buildDataTable(),
-            const SizedBox(height: 20),
-            _buildPagination(),
-          ],
-        ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 24),
+                _buildFilterSection(),
+              ],
+            ),
+          ),
+          Expanded(child: _buildDataTable()),
+        ],
       ),
     );
   }
@@ -563,11 +572,20 @@ class _DaftarPOScreenState extends State<DaftarPOScreen> {
               ),
               // Data rows
               ListView.separated(
+                controller: _scrollController,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: poProvider.purchaseOrders.length,
+                itemCount:
+                    poProvider.purchaseOrders.length +
+                    (poProvider.isLoading ? 1 : 0),
                 separatorBuilder: (context, index) => const Divider(height: 1),
                 itemBuilder: (context, index) {
+                  if (index == poProvider.purchaseOrders.length) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
                   final po = poProvider.purchaseOrders[index];
                   return InkWell(
                     onTap: () {
@@ -688,158 +706,6 @@ class _DaftarPOScreenState extends State<DaftarPOScreen> {
           color: Color(0xFF9CA3AF),
         ),
       ],
-    );
-  }
-
-  Widget _buildPagination() {
-    return Consumer<PurchaseOrderProvider>(
-      builder: (context, poProvider, _) {
-        final meta = poProvider.meta;
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildPaginationButton(
-                icon: Icons.keyboard_double_arrow_left_rounded,
-                onTap: (meta != null && meta.currentPage > 1)
-                    ? () {
-                        setState(() => _currentPage = 1);
-                        _loadData();
-                      }
-                    : null,
-              ),
-              const SizedBox(width: 8),
-              _buildPaginationButton(
-                icon: Icons.chevron_left_rounded,
-                onTap: (meta != null && meta.currentPage > 1)
-                    ? () {
-                        setState(() => _currentPage--);
-                        _loadData();
-                      }
-                    : null,
-              ),
-              const SizedBox(width: 16),
-              Text(
-                'Page ${meta?.currentPage ?? 1} of ${meta?.lastPage ?? 1}',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF6B7280),
-                ),
-              ),
-              const SizedBox(width: 16),
-              _buildPaginationButton(
-                icon: Icons.chevron_right_rounded,
-                onTap: (meta != null && meta.currentPage < meta.lastPage)
-                    ? () {
-                        setState(() => _currentPage++);
-                        _loadData();
-                      }
-                    : null,
-              ),
-              const SizedBox(width: 8),
-              _buildPaginationButton(
-                icon: Icons.keyboard_double_arrow_right_rounded,
-                onTap: (meta != null && meta.currentPage < meta.lastPage)
-                    ? () {
-                        setState(() => _currentPage = meta.lastPage);
-                        _loadData();
-                      }
-                    : null,
-              ),
-              const SizedBox(width: 24),
-              PopupMenuButton<int>(
-                initialValue: _itemsPerPage,
-                onSelected: (value) {
-                  setState(() {
-                    _itemsPerPage = value;
-                    _currentPage = 1;
-                  });
-                  _loadData();
-                },
-                itemBuilder: (context) => [15, 30, 50, 100]
-                    .map(
-                      (e) =>
-                          PopupMenuItem(value: e, child: Text('$e per page')),
-                    )
-                    .toList(),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        '$_itemsPerPage',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF1A1A1A),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        size: 20,
-                        color: Color(0xFF6B7280),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildPaginationButton({
-    required IconData icon,
-    required VoidCallback? onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: onTap == null ? Colors.grey[50] : Colors.transparent,
-            border: Border.all(
-              color: onTap == null
-                  ? const Color(0xFFF3F4F6)
-                  : const Color(0xFFE5E7EB),
-            ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: onTap == null
-                ? const Color(0xFFD1D5DB)
-                : const Color(0xFF6B7280),
-          ),
-        ),
-      ),
     );
   }
 }

@@ -41,7 +41,6 @@ class _StockOpnameScreenState extends State<StockOpnameScreen> {
         partnerId: _selectedPartnerId,
         status: _selectedStatus,
         perPage: _itemsPerPage,
-        page: _currentPage,
       );
     }
   }

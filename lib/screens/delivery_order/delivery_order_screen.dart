@@ -40,7 +40,6 @@ class _DeliveryOrderScreenState extends State<DeliveryOrderScreen> {
         partnerId: _selectedPartnerId,
         status: _selectedStatus,
         perPage: _itemsPerPage,
-        page: _currentPage,
       );
     }
   }

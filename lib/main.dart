@@ -13,6 +13,9 @@ import 'package:myapp/providers/purchase_order_provider.dart';
 import 'package:myapp/providers/inventory_provider.dart';
 import 'package:myapp/providers/stock_opname_provider.dart';
 import 'package:myapp/providers/delivery_order_provider.dart';
+import 'package:myapp/providers/invoice_provider.dart';
+import 'package:myapp/providers/payment_provider.dart';
+import 'package:myapp/providers/report_provider.dart';
 
 import 'package:myapp/screens/home_screen.dart';
 
@@ -32,6 +35,9 @@ void main() {
         ChangeNotifierProvider(create: (_) => InventoryProvider()),
         ChangeNotifierProvider(create: (_) => StockOpnameProvider()),
         ChangeNotifierProvider(create: (_) => DeliveryOrderProvider()),
+        ChangeNotifierProvider(create: (_) => InvoiceProvider()),
+        ChangeNotifierProvider(create: (_) => PaymentProvider()),
+        ChangeNotifierProvider(create: (_) => ReportProvider()),
       ],
       child: const MyApp(),
     ),

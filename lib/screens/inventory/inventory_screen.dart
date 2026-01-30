@@ -38,7 +38,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
         categoryId: _selectedCategoryId,
         lowStock: _showLowStockOnly ? true : null,
         perPage: _itemsPerPage,
-        page: _currentPage,
       );
     }
   }

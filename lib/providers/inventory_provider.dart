@@ -17,26 +17,39 @@ class InventoryProvider with ChangeNotifier {
 
   Future<void> fetchInventories(
     String token, {
+    bool loadMore = false,
     String? search,
     int? categoryId,
     bool? lowStock,
     int perPage = 15,
-    int page = 1,
   }) async {
+    if (loadMore && (_meta == null || _meta!.currentPage >= _meta!.lastPage))
+      return;
+
     _isLoading = true;
+    if (!loadMore) {
+      _inventories = [];
+      _meta = null;
+    }
     _errorMessage = null;
     notifyListeners();
 
     try {
+      final nextPage = loadMore ? (_meta?.currentPage ?? 0) + 1 : 1;
       final response = await _service.getInventories(
         token,
         search: search,
         categoryId: categoryId,
         lowStock: lowStock,
         perPage: perPage,
-        page: page,
+        page: nextPage,
       );
-      _inventories = response.data;
+
+      if (loadMore) {
+        _inventories.addAll(response.data);
+      } else {
+        _inventories = response.data;
+      }
       _meta = response.meta;
     } catch (e) {
       _errorMessage = e.toString();

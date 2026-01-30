@@ -9,6 +9,8 @@ import 'package:myapp/screens/purchase_order/purchase_order_screen.dart';
 import 'package:myapp/screens/inventory/inventory_screen.dart';
 import 'package:myapp/screens/stock_opname/stock_opname_screen.dart';
 import 'package:myapp/screens/delivery_order/delivery_order_screen.dart';
+import 'package:myapp/screens/finance/finance_menu_screen.dart';
+import 'package:myapp/screens/reports/reports_menu_screen.dart';
 import 'package:myapp/screens/profile_screen.dart';
 import 'package:myapp/screens/users/users_screen.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -353,17 +355,41 @@ class _HomeScreenState extends State<HomeScreen>
             _buildQuickMenuItem(
               icon: Icons.account_balance_wallet_rounded,
               label: 'Finance',
-              color: const Color(0xFF06B6D4),
+              color: const Color(0xFF8B5CF6),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const FinanceMenuScreen(),
+                  ),
+                );
+              },
             ),
             _buildQuickMenuItem(
               icon: Icons.bar_chart_rounded,
               label: 'Reports',
-              color: const Color(0xFF8B5CF6),
+              color: const Color(0xFF10B981),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ReportsMenuScreen(),
+                  ),
+                );
+              },
             ),
             _buildQuickMenuItem(
               icon: Icons.settings_rounded,
               label: 'Settings',
               color: const Color(0xFF6B7280),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                );
+              },
             ),
           ],
         ),

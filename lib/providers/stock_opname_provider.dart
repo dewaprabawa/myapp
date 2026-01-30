@@ -17,26 +17,39 @@ class StockOpnameProvider with ChangeNotifier {
 
   Future<void> fetchStockOpnames(
     String token, {
+    bool loadMore = false,
     String? search,
     int? partnerId,
     String? status,
     int perPage = 15,
-    int page = 1,
   }) async {
+    if (loadMore && (_meta == null || _meta!.currentPage >= _meta!.lastPage))
+      return;
+
     _isLoading = true;
+    if (!loadMore) {
+      _stockOpnames = [];
+      _meta = null;
+    }
     _errorMessage = null;
     notifyListeners();
 
     try {
+      final nextPage = loadMore ? (_meta?.currentPage ?? 0) + 1 : 1;
       final response = await _service.getStockOpnames(
         token,
         search: search,
         partnerId: partnerId,
         status: status,
         perPage: perPage,
-        page: page,
+        page: nextPage,
       );
-      _stockOpnames = response.data;
+
+      if (loadMore) {
+        _stockOpnames.addAll(response.data);
+      } else {
+        _stockOpnames = response.data;
+      }
       _meta = response.meta;
     } catch (e) {
       _errorMessage = e.toString();

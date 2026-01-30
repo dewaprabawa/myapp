@@ -17,24 +17,39 @@ class ProductProvider with ChangeNotifier {
 
   Future<void> fetchProducts(
     String token, {
+    bool loadMore = false,
     String? search,
     int? categoryId,
     bool? isActive,
     int perPage = 15,
   }) async {
+    if (loadMore && (_meta == null || _meta!.currentPage >= _meta!.lastPage))
+      return;
+
     _isLoading = true;
+    if (!loadMore) {
+      _products = [];
+      _meta = null;
+    }
     _errorMessage = null;
     notifyListeners();
 
     try {
+      final nextPage = loadMore ? (_meta?.currentPage ?? 0) + 1 : 1;
       final response = await _service.getProducts(
         token,
         search: search,
         categoryId: categoryId,
         isActive: isActive,
         perPage: perPage,
+        page: nextPage,
       );
-      _products = response.data;
+
+      if (loadMore) {
+        _products.addAll(response.data);
+      } else {
+        _products = response.data;
+      }
       _meta = response.meta;
     } catch (e) {
       _errorMessage = e.toString();

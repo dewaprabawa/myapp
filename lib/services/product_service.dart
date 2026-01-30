@@ -11,12 +11,14 @@ class ProductService {
     int? categoryId,
     bool? isActive,
     int perPage = 15,
+    int page = 1,
   }) async {
     final queryParams = {
       if (search != null) 'search': search,
       if (categoryId != null) 'category_id': categoryId.toString(),
       if (isActive != null) 'is_active': isActive ? '1' : '0',
       'per_page': perPage.toString(),
+      'page': page.toString(),
     };
 
     final uri = Uri.parse(

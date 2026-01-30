@@ -17,26 +17,39 @@ class DeliveryOrderProvider with ChangeNotifier {
 
   Future<void> fetchDeliveryOrders(
     String token, {
+    bool loadMore = false,
     String? search,
     int? partnerId,
     String? status,
     int perPage = 15,
-    int page = 1,
   }) async {
+    if (loadMore && (_meta == null || _meta!.currentPage >= _meta!.lastPage))
+      return;
+
     _isLoading = true;
+    if (!loadMore) {
+      _deliveryOrders = [];
+      _meta = null;
+    }
     _errorMessage = null;
     notifyListeners();
 
     try {
+      final nextPage = loadMore ? (_meta?.currentPage ?? 0) + 1 : 1;
       final response = await _service.getDeliveryOrders(
         token,
         search: search,
         partnerId: partnerId,
         status: status,
         perPage: perPage,
-        page: page,
+        page: nextPage,
       );
-      _deliveryOrders = response.data;
+
+      if (loadMore) {
+        _deliveryOrders.addAll(response.data);
+      } else {
+        _deliveryOrders = response.data;
+      }
       _meta = response.meta;
     } catch (e) {
       _errorMessage = e.toString();
